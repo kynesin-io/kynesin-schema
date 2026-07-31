@@ -1,5 +1,5 @@
 {
-  "kynesin_version": "0.7.0",
+  "kynesin_version": "0.9.0",
   "provenance": {
     "session_id": "run-d-2026-07-30",
     "skill_version": "trial-readiness-handoff@0.4",
@@ -10,24 +10,56 @@
   },
   "target": {
     "identifiers": [
-      {"value": "PARP1", "namespace": "hgnc", "level": "gene", "status": "canonical",
-       "aliases": ["ADPRT", "ARTD1", "pADPRT-1", "PARS", "PPOL"]},
-      {"value": "ENSG00000143799", "namespace": "ensembl", "level": "gene", "status": "canonical"},
-      {"value": "P09874", "namespace": "uniprot", "level": "protein", "status": "reviewed"}
+      {
+        "value": "PARP1",
+        "namespace": "hgnc",
+        "level": "gene",
+        "status": "canonical",
+        "aliases": [
+          "ADPRT",
+          "ARTD1",
+          "pADPRT-1",
+          "PARS",
+          "PPOL"
+        ]
+      },
+      {
+        "value": "ENSG00000143799",
+        "namespace": "ensembl",
+        "level": "gene",
+        "status": "canonical"
+      },
+      {
+        "value": "P09874",
+        "namespace": "uniprot",
+        "level": "protein",
+        "status": "reviewed"
+      }
     ],
     "mechanism": {
       "description": "Synthetic lethality between PARP inhibition and homologous recombination deficiency. Clinical PARP inhibitors trap PARP1/2 on DNA rather than only blocking catalysis; the trapped complex is the cytotoxic lesion.",
       "model_current": true,
       "refs": [
-        {"type": "pmid", "value": "16912188"},
-        {"type": "doi", "value": "10.1158/0008-5472.CAN-12-2753"}
+        {
+          "type": "pmid",
+          "value": "16912188"
+        },
+        {
+          "type": "doi",
+          "value": "10.1158/0008-5472.CAN-12-2753"
+        }
       ]
     },
     "tractability": "Small-molecule inhibitor; multiple approved agents."
   },
   "candidate": {
     "identifiers": [
-      {"value": "CHEMBL521686", "namespace": "chembl", "level": "compound", "status": "canonical"}
+      {
+        "value": "CHEMBL521686",
+        "namespace": "chembl",
+        "level": "compound",
+        "status": "canonical"
+      }
     ],
     "modality": "small molecule",
     "route": "oral",
@@ -35,18 +67,36 @@
       {
         "description": "Myelodysplastic syndrome and acute myeloid leukaemia. Mechanism-derived: the agent exploits a DNA repair defect in a patient whose haematopoietic stem cells see the same drug.",
         "quantified": "1.2% (26/2219) across approved indications, 54% (14/26) fatal, median time to onset ~2 years.",
-        "refs": [{"type": "label", "value": "FDA", "locator": "5.1"}]
+        "refs": [
+          {
+            "type": "label",
+            "value": "FDA",
+            "locator": "5.1"
+          }
+        ]
       },
       {
         "description": "CYP3A substrate. Strong inhibitors raise exposure; strong inducers reduce it to a degree that is not dose-correctable.",
         "quantified": "Itraconazole AUC 2.70-fold; rifampin AUC 0.13 of control.",
-        "refs": [{"type": "label", "value": "FDA", "locator": "7.1"}]
+        "refs": [
+          {
+            "type": "label",
+            "value": "FDA",
+            "locator": "7.1"
+          }
+        ]
       }
     ]
   },
   "indication": {
     "description": "High-grade serous carcinoma of the ovary, fallopian tube or primary peritoneum",
-    "identifiers": [{"value": "MONDO:0008170", "namespace": "mondo", "level": "disease"}],
+    "identifiers": [
+      {
+        "value": "MONDO:0008170",
+        "namespace": "mondo",
+        "level": "disease"
+      }
+    ],
     "setting": "first-line maintenance",
     "design": "monotherapy"
   },
@@ -58,24 +108,39 @@
       "threshold": null,
       "threshold_grounded": false,
       "is_gate": true,
-      "refs": [{"type": "decision", "value": "D006"}, {"type": "pmid", "value": "39695768"}]
+      "refs": [
+        {
+          "type": "decision",
+          "value": "D006"
+        },
+        {
+          "type": "pmid",
+          "value": "39695768"
+        }
+      ]
     },
     "boundary_decisions": [
       {
         "ambiguity": "Germline pathogenic variants in non-BRCA HRR genes (PALB2, RAD51C, RAD51D, BRIP1, BARD1) are scar-assay positive and enter under D006, which forbids genotype as an entry gate. D006 governs inclusion; it does not address whether genotype may exclude.",
         "options_considered": [
-          {"option": "Permit all; stratify on germline non-BRCA HRR variant",
-           "regulatory_consequence": "No approved 1L maintenance option is withheld from any enrolled patient.",
-           "ethical_consequence": "None adverse.",
-           "statistical_consequence": "Protects accrual in an already narrow population; subgroup analysis underpowered if RAD51C/D carriers concentrate response."},
-          {"option": "Exclude RAD51C, RAD51D, PALB2 only",
-           "regulatory_consequence": "Excluded genes have no approved 1L option, so exclusion denies the trial without offering an alternative.",
-           "ethical_consequence": "Denies trial access on thin evidence.",
-           "statistical_consequence": "Cleaner attribution to scar-defined deficiency."},
-          {"option": "Exclude any germline HRR pathogenic variant",
-           "regulatory_consequence": "Requires a gene list and variant-classification standard the field does not agree on.",
-           "ethical_consequence": "Makes germline panel testing a hard entry gate in every participating country.",
-           "statistical_consequence": "Maximum interpretive purity; substantial accrual cost."}
+          {
+            "option": "Permit all; stratify on germline non-BRCA HRR variant",
+            "regulatory_consequence": "No approved 1L maintenance option is withheld from any enrolled patient.",
+            "ethical_consequence": "None adverse.",
+            "statistical_consequence": "Protects accrual in an already narrow population; subgroup analysis underpowered if RAD51C/D carriers concentrate response."
+          },
+          {
+            "option": "Exclude RAD51C, RAD51D, PALB2 only",
+            "regulatory_consequence": "Excluded genes have no approved 1L option, so exclusion denies the trial without offering an alternative.",
+            "ethical_consequence": "Denies trial access on thin evidence.",
+            "statistical_consequence": "Cleaner attribution to scar-defined deficiency."
+          },
+          {
+            "option": "Exclude any germline HRR pathogenic variant",
+            "regulatory_consequence": "Requires a gene list and variant-classification standard the field does not agree on.",
+            "ethical_consequence": "Makes germline panel testing a hard entry gate in every participating country.",
+            "statistical_consequence": "Maximum interpretive purity; substantial accrual cost."
+          }
         ],
         "decision": "Permit all germline non-BRCA HRR variants. Stratify randomisation on a single binary variable: germline non-BRCA HRR pathogenic or likely pathogenic variant present, yes or no.",
         "rationale": "The scar assay records historical rather than current HR deficiency, so its failure mode is reverted tumours scoring positive. A patient with a fixed germline lesion is less likely to have reverted than one whose cause of scarring is unidentified, so known-lesion carriers are the subgroup in whom scar-positivity is most trustworthy. Excluding them would raise the false-positive rate of the entry criterion.",
@@ -85,18 +150,24 @@
       {
         "ambiguity": "D001 excludes somatic BRCA as a mutation criterion, justified by label coverage. BRCA1 and RAD51C promoter hypermethylation silence the same genes by a different mechanism, occur in 10-15% of HGSOC, produce a positive genomic scar, and are covered by no label. D001 is silent on epigenetic silencing.",
         "options_considered": [
-          {"option": "Permit; stratify on methylation status",
-           "regulatory_consequence": "No label covers methylated BRCA1, so D001's equipoise argument does not apply.",
-           "ethical_consequence": "None adverse.",
-           "statistical_consequence": "Enrolled population more heterogeneous in expected effect size."},
-          {"option": "Exclude complete or homozygous BRCA1 methylation",
-           "regulatory_consequence": "No regulatory basis.",
-           "ethical_consequence": "Denies trial access on unvalidated grounds.",
-           "statistical_consequence": "Requires a validated quantitative methylation cut-point and a homozygous call - a second unvalidated threshold stacked on D005's."},
-          {"option": "Exclude any detectable methylation",
-           "regulatory_consequence": "No regulatory basis.",
-           "ethical_consequence": "Removes a mechanistically central fraction of the target population.",
-           "statistical_consequence": "Still requires a threshold; does not escape the D005 problem."}
+          {
+            "option": "Permit; stratify on methylation status",
+            "regulatory_consequence": "No label covers methylated BRCA1, so D001's equipoise argument does not apply.",
+            "ethical_consequence": "None adverse.",
+            "statistical_consequence": "Enrolled population more heterogeneous in expected effect size."
+          },
+          {
+            "option": "Exclude complete or homozygous BRCA1 methylation",
+            "regulatory_consequence": "No regulatory basis.",
+            "ethical_consequence": "Denies trial access on unvalidated grounds.",
+            "statistical_consequence": "Requires a validated quantitative methylation cut-point and a homozygous call - a second unvalidated threshold stacked on D005's."
+          },
+          {
+            "option": "Exclude any detectable methylation",
+            "regulatory_consequence": "No regulatory basis.",
+            "ethical_consequence": "Removes a mechanistically central fraction of the target population.",
+            "statistical_consequence": "Still requires a threshold; does not escape the D005 problem."
+          }
         ],
         "decision": "Permit methylated BRCA1/RAD51C tumours. Assay methylation at baseline in all patients; use as randomisation stratum and pre-specified subgroup, never as a gate.",
         "rationale": "D001 rests on label coverage and interpretability. Label coverage does not apply at all. After removing sequence-level BRCA, methylated tumours are the purest available test of the McCabe prediction - HR-deficient by mechanism, BRCA wild-type by sequence. Excluding them removes the subgroup that most directly answers the question the trial was designed to ask. Both exclusion options also stack a second unvalidated threshold on D005's.",
@@ -116,7 +187,12 @@
       "strength_normalized": "strong",
       "method": "RNA interference depletion, cell viability",
       "caveat": "Removes gene function. A clinical panel reports a variant, which is not the same thing.",
-      "refs": [{"type": "pmid", "value": "16912188"}],
+      "refs": [
+        {
+          "type": "pmid",
+          "value": "16912188"
+        }
+      ],
       "source_completeness": "publication"
     },
     {
@@ -129,7 +205,12 @@
       "strength_normalized": "moderate",
       "population_studied": "PAOLA-1, non-BRCA HRR-mutant subgroups, PFS",
       "caveat": "Ancillary analysis, not a prespecified endpoint.",
-      "refs": [{"type": "pmid", "value": "36716415"}],
+      "refs": [
+        {
+          "type": "pmid",
+          "value": "36716415"
+        }
+      ],
       "source_completeness": "publication"
     },
     {
@@ -142,7 +223,12 @@
       "strength_normalized": "strong",
       "population_studied": "Pooled olaparib trial tumours, genomic instability score distribution",
       "caveat": "Implies a threshold of 42 sits above the median of the population this trial enrols.",
-      "refs": [{"type": "pmid", "value": "39695768"}],
+      "refs": [
+        {
+          "type": "pmid",
+          "value": "39695768"
+        }
+      ],
       "source_completeness": "publication"
     },
     {
@@ -153,9 +239,21 @@
       "polarity": "supporting",
       "strength_native": "labelled warning",
       "strength_normalized": "strong",
-      "metric": {"type": "prevalence", "value": 1.2, "n_total": 2219, "n_cases": 26, "unit": "percent"},
+      "metric": {
+        "type": "prevalence",
+        "value": 1.2,
+        "n_total": 2219,
+        "n_cases": 26,
+        "unit": "percent"
+      },
       "caveat": "Median time to onset is the entire planned maintenance duration.",
-      "refs": [{"type": "label", "value": "FDA", "locator": "5.1"}],
+      "refs": [
+        {
+          "type": "label",
+          "value": "FDA",
+          "locator": "5.1"
+        }
+      ],
       "source_completeness": "label"
     },
     {
@@ -167,7 +265,12 @@
       "strength_native": "phase 3, prospectively selected",
       "strength_normalized": "strong",
       "population_studied": "SOLO1, germline BRCA-mutated, first-line maintenance",
-      "refs": [{"type": "nct", "value": "NCT01844986"}],
+      "refs": [
+        {
+          "type": "nct",
+          "value": "NCT01844986"
+        }
+      ],
       "source_completeness": "protocol"
     },
     {
@@ -180,7 +283,12 @@
       "strength_normalized": "weak",
       "population_studied": "PAOLA-1 eligibility criteria",
       "caveat": "The stated rationale is not a rationale for excluding a patient from an oral maintenance drug.",
-      "refs": [{"type": "nct", "value": "NCT02477644"}],
+      "refs": [
+        {
+          "type": "nct",
+          "value": "NCT02477644"
+        }
+      ],
       "source_completeness": "registry"
     }
   ],
@@ -190,186 +298,387 @@
       "criterion_type": "inclusion",
       "criterion_domain": "biomarker",
       "criterion_text": "Tumour homologous-recombination deficiency positive by a validated composite genomic-scar assay measuring loss of heterozygosity, telomeric allelic imbalance and large-scale state transitions, performed centrally on formalin-fixed paraffin-embedded tissue from the primary tumour.",
-      "basis_class": ["mechanism", "precedent", "not_groundable"],
+      "basis_class": [
+        "mechanism",
+        "precedent",
+        "not_groundable"
+      ],
       "derivation_text": "D006 makes a genomic-scar assay the sole entry gate. McCabe removed gene function and showed PARP-inhibitor sensitivity across the HR pathway; a clinical HRR panel reports a variant, not function. Genotype cannot distinguish monoallelic from biallelic loss; a scar assay can.",
       "derivation_refs": [
-        {"type": "decision", "value": "D006"},
-        {"type": "pmid", "value": "16912188"},
-        {"type": "pmid", "value": "36716415"},
-        {"type": "decision", "value": "D005"},
-        {"type": "pmid", "value": "39695768"}
+        {
+          "type": "decision",
+          "value": "D006"
+        },
+        {
+          "type": "pmid",
+          "value": "16912188"
+        },
+        {
+          "type": "pmid",
+          "value": "36716415"
+        },
+        {
+          "type": "decision",
+          "value": "D005"
+        },
+        {
+          "type": "pmid",
+          "value": "39695768"
+        }
       ],
-      "derived_from_evidence": ["E001", "E002", "E003"],
+      "derived_from_evidence": [
+        "E001",
+        "E002",
+        "E003"
+      ],
       "grounded": false,
       "gap_description": "No defensible cut-point can be supplied. Published thresholds were validated on BRCA-inclusive cohorts, and the 42 value entered ovarian practice as part of a composite definition - BRCA mutation OR score at or above 42. Removing the BRCA arm truncates the upper tail the threshold was fitted against. Closing this requires a prospective threshold-setting study in BRCA-wild-type high-grade serous ovarian cancer.",
       "precedent_departure": "PAOLA-1 and PRIMA both used a genomic instability score cut-off of 42 applied to a BRCA-inclusive population; ATHENA used BRCA-mutant or LOH-high. None of these thresholds was derived in a BRCA-excluded population.",
       "destination": "eligibility",
-      "origin": ["register", "model_derived"],
+      "origin": [
+        "register",
+        "model_derived"
+      ],
       "review_priority": "high",
-      "review_focus": "The assay specification - which scar components, which platform, FFPE primary tumour, central testing - is model-derived operationalisation of D006's direction that a scar assay is the gate. Confirm it matches the registered intent."
+      "review_focus": "The assay specification - which scar components, which platform, FFPE primary tumour, central testing - is model-derived operationalisation of D006's direction that a scar assay is the gate. Confirm it matches the registered intent.",
+      "review_action": "verify"
     },
     {
       "criterion_id": "B2",
       "criterion_type": "exclusion",
       "criterion_domain": "biomarker",
       "criterion_text": "Germline pathogenic or likely pathogenic variant in BRCA1 or BRCA2, by an accredited germline test. Germline testing is mandatory before randomisation.",
-      "basis_class": ["ethical_equipoise", "regulatory", "interpretability"],
+      "basis_class": [
+        "ethical_equipoise",
+        "regulatory",
+        "interpretability"
+      ],
       "derivation_text": "The population boundary the requester specified, with an independent ethical basis: olaparib maintenance is approved and standard for germline BRCA-mutated first-line ovarian cancer on the strength of SOLO1, so randomising these patients to placebo is not defensible.",
       "derivation_refs": [
-        {"type": "nct", "value": "NCT01844986"},
-        {"type": "decision", "value": "D001"}
+        {
+          "type": "nct",
+          "value": "NCT01844986"
+        },
+        {
+          "type": "decision",
+          "value": "D001"
+        }
       ],
-      "derived_from_evidence": ["E005"],
+      "derived_from_evidence": [
+        "E005"
+      ],
       "grounded": true,
       "destination": "eligibility",
-      "origin": ["human_specified", "model_derived"],
+      "origin": [
+        "human_specified",
+        "model_derived"
+      ],
       "review_priority": "high",
-      "review_focus": "Confirm the variant-classification standard to be applied (ACMG/AMP five-tier, and whether likely pathogenic excludes) and which accredited laboratories are acceptable."
+      "review_focus": "Confirm the variant-classification standard to be applied (ACMG/AMP five-tier, and whether likely pathogenic excludes) and which accredited laboratories are acceptable.",
+      "review_action": "own"
     },
     {
       "criterion_id": "B5",
       "criterion_type": "neither",
       "criterion_domain": "biomarker",
       "criterion_text": "NOT A CRITERION. Germline pathogenic or likely pathogenic variants in non-BRCA homologous recombination repair genes (including PALB2, RAD51C, RAD51D, BRIP1, BARD1) are NOT exclusionary. Such patients are eligible if they meet B1. Presence of a germline non-BRCA HRR variant is a randomisation stratum and a pre-specified exploratory subgroup.",
-      "basis_class": ["mechanism", "interpretability"],
+      "basis_class": [
+        "mechanism",
+        "interpretability"
+      ],
       "derivation_text": "Decision taken in session, not from the register. Excluding these patients would contradict the evidence D006 itself rests on: across six non-BRCA HRR gene panels in PAOLA-1, hazard ratios ranged 0.92-1.83 and none was predictive.",
       "derivation_refs": [
-        {"type": "pmid", "value": "36716415"},
-        {"type": "pmid", "value": "39695768"},
-        {"type": "decision", "value": "D006"}
+        {
+          "type": "pmid",
+          "value": "36716415"
+        },
+        {
+          "type": "pmid",
+          "value": "39695768"
+        },
+        {
+          "type": "decision",
+          "value": "D006"
+        }
       ],
-      "derived_from_evidence": ["E002", "E003"],
+      "derived_from_evidence": [
+        "E002",
+        "E003"
+      ],
       "grounded": true,
       "precedent_departure": "PAOLA-1 and PRIMA enrolled these patients without separating them out. This trial enrols them but stratifies, which no precedent trial did.",
-      "deleted_from_precedent": "No precedent trial excluded these patients; this row records that the exclusion was considered and rejected, and that stratification was added.",
       "destination": "eligibility",
-      "origin": ["human_specified", "model_derived"],
+      "origin": [
+        "human_specified",
+        "model_derived"
+      ],
       "review_priority": "high",
-      "review_focus": "Judge whether the pre-specified subgroup will be adequately powered - non-BRCA HRR mutation prevalence was 3.7-9.8% of the PAOLA-1 population depending on gene panel."
+      "review_focus": "Judge whether the pre-specified subgroup will be adequately powered - non-BRCA HRR mutation prevalence was 3.7-9.8% of the PAOLA-1 population depending on gene panel.",
+      "review_action": "own",
+      "considered_and_rejected": {
+        "what": "Excluding these patients from the trial",
+        "why_rejected": "No precedent trial excluded these patients; the exclusion was considered and rejected, and stratification was added instead."
+      }
     },
     {
       "criterion_id": "S4",
       "criterion_type": "exclusion",
       "criterion_domain": "haematology",
       "criterion_text": "Previous or current diagnosis of myelodysplastic syndrome or acute myeloid leukaemia, or any haematological finding at screening suggestive of myelodysplasia including unexplained persistent cytopenia or dysplastic changes on blood film.",
-      "basis_class": ["regulatory", "mechanism", "precedent"],
+      "basis_class": [
+        "regulatory",
+        "mechanism",
+        "precedent"
+      ],
       "derivation_text": "Labelled warning: MDS/AML occurred in approximately 1.2% of olaparib-treated patients, 54% fatal, median onset about 2 years - the entire planned maintenance duration. The mechanistic basis for excluding pre-existing disease is direct: PARP inhibition exploits a DNA repair defect in a patient whose haematopoietic stem cells see the same drug.",
       "derivation_refs": [
-        {"type": "label", "value": "FDA", "locator": "5.1"},
-        {"type": "nct", "value": "NCT02477644"},
-        {"type": "nct", "value": "NCT01844986"}
+        {
+          "type": "label",
+          "value": "FDA",
+          "locator": "5.1"
+        },
+        {
+          "type": "nct",
+          "value": "NCT02477644"
+        },
+        {
+          "type": "nct",
+          "value": "NCT01844986"
+        }
       ],
-      "derived_from_evidence": ["E004"],
+      "derived_from_evidence": [
+        "E004"
+      ],
       "grounded": true,
       "destination": "eligibility",
-      "origin": ["label_verbatim", "precedent_verbatim", "model_derived"],
+      "origin": [
+        "label_verbatim",
+        "precedent_verbatim",
+        "model_derived"
+      ],
       "review_priority": "high",
-      "review_focus": "The extension beyond documented MDS/AML history to findings suggestive of myelodysplasia is model-derived and requires a defined screening procedure - decide whether a blood film is mandatory at screening for all patients."
+      "review_focus": "The extension beyond documented MDS/AML history to findings suggestive of myelodysplasia is model-derived and requires a defined screening procedure - decide whether a blood film is mandatory at screening for all patients.",
+      "review_action": "own"
     },
     {
       "criterion_id": "S16",
       "criterion_type": "neither",
       "criterion_domain": "comorbidity",
       "criterion_text": "NOT A CRITERION. Human immunodeficiency virus infection, and hepatitis B or hepatitis C infection, are NOT exclusionary. PAOLA-1's exclusion of immunocompromised patients and of patients seropositive for HIV or with known active hepatitis is not carried forward.",
-      "basis_class": ["inherited", "ethical_equipoise"],
+      "basis_class": [
+        "inherited",
+        "ethical_equipoise"
+      ],
       "derivation_text": "Classified inherited. PAOLA-1's stated rationale was risk of transmitting infection through blood or other body fluids, which is not a rationale for excluding a patient from an oral maintenance drug. No mechanistic or pharmacological interaction between olaparib and HIV or viral hepatitis is established beyond hepatic function and CYP3A interactions, both already covered.",
       "derivation_refs": [
-        {"type": "nct", "value": "NCT02477644"},
-        {"type": "decision", "value": "D010"},
-        {"type": "label", "value": "FDA", "locator": "7.2"},
-        {"type": "label", "value": "FDA", "locator": "8.7"}
+        {
+          "type": "nct",
+          "value": "NCT02477644"
+        },
+        {
+          "type": "decision",
+          "value": "D010"
+        },
+        {
+          "type": "label",
+          "value": "FDA",
+          "locator": "7.2"
+        },
+        {
+          "type": "label",
+          "value": "FDA",
+          "locator": "8.7"
+        }
       ],
-      "derived_from_evidence": ["E006"],
+      "derived_from_evidence": [
+        "E006"
+      ],
       "grounded": true,
       "precedent_departure": "Directly departs from PAOLA-1, which excluded HIV-seropositive patients and those with known active hepatitis B or C.",
-      "deleted_from_precedent": "PAOLA-1 exclusion of immunocompromised patients and of patients seropositive for HIV or with known active hepatitis B or C.",
+      "deleted_from_precedent": [
+        {
+          "what": "PAOLA-1 exclusion of immunocompromised patients and of patients seropositive for HIV or with known active hepatitis B or C.",
+          "source": {
+            "type": "nct",
+            "value": "NCT02477644"
+          }
+        }
+      ],
       "destination": "eligibility",
-      "origin": ["register", "model_derived"],
+      "origin": [
+        "register",
+        "model_derived"
+      ],
       "review_priority": "high",
-      "review_focus": "This deletion needs explicit clinical and sponsor sign-off. Judge specifically whether the CYP3A interactions common in antiretroviral regimens (ritonavir and cobicistat) are adequately handled by the existing drug-interaction criterion."
+      "review_focus": "This deletion needs explicit clinical and sponsor sign-off. Judge specifically whether the CYP3A interactions common in antiretroviral regimens (ritonavir and cobicistat) are adequately handled by the existing drug-interaction criterion.",
+      "review_action": "verify"
     },
     {
       "criterion_id": "S17",
       "criterion_type": "neither",
       "criterion_domain": "comorbidity",
       "criterion_text": "NOT A CRITERION. Fourteen PAOLA-1 exclusions are deleted in their entirety because they exist to protect against bevacizumab toxicity and this trial administers no bevacizumab during maintenance: proteinuria criteria; blood pressure and hypertension control; coagulation and INR limits; wound healing; gastrointestinal perforation and fistula history; abdominal or bowel involvement; haemorrhage and bleeding diathesis; arterial and venous thromboembolic events; hypertensive crisis or encephalopathy; major surgery interval; chronic aspirin above 325 mg daily; non-healing wound or ulcer or fracture; cerebrovascular events; and prior VEGF-therapy-related complications.",
-      "basis_class": ["precedent"],
+      "basis_class": [
+        "precedent"
+      ],
       "derivation_text": "Bundled as a single row under D011 because all fourteen share one derivation: each is a bevacizumab-specific criterion in PAOLA-1, and D002 removes bevacizumab from both maintenance arms. Recording them explicitly rather than silently omitting them matters because this design is derived from PAOLA-1 by name.",
       "derivation_refs": [
-        {"type": "decision", "value": "D002"},
-        {"type": "decision", "value": "D008"},
-        {"type": "decision", "value": "D011"},
-        {"type": "nct", "value": "NCT02477644"},
-        {"type": "label", "value": "FDA", "locator": "5.3"}
+        {
+          "type": "decision",
+          "value": "D002"
+        },
+        {
+          "type": "decision",
+          "value": "D008"
+        },
+        {
+          "type": "decision",
+          "value": "D011"
+        },
+        {
+          "type": "nct",
+          "value": "NCT02477644"
+        },
+        {
+          "type": "label",
+          "value": "FDA",
+          "locator": "5.3"
+        }
       ],
       "grounded": true,
       "precedent_departure": "Deletes fourteen PAOLA-1 exclusion criteria. All are attributable to bevacizumab.",
-      "deleted_from_precedent": "Fourteen bevacizumab-specific exclusion criteria from PAOLA-1 (NCT02477644).",
+      "deleted_from_precedent": [
+        {
+          "what": "Fourteen bevacizumab-specific exclusion criteria from PAOLA-1 (NCT02477644).",
+          "source": {
+            "type": "nct",
+            "value": "NCT02477644"
+          }
+        }
+      ],
       "attributable_to": "bevacizumab",
       "destination": "eligibility",
-      "origin": ["register", "model_derived"],
+      "origin": [
+        "register",
+        "model_derived"
+      ],
       "review_priority": "medium",
-      "review_focus": "Verify all fourteen were genuinely bevacizumab-driven rather than general safety criteria that happen to appear in a bevacizumab trial."
+      "review_focus": "Verify all fourteen were genuinely bevacizumab-driven rather than general safety criteria that happen to appear in a bevacizumab trial.",
+      "review_action": "verify"
     },
     {
       "criterion_id": "O2",
       "criterion_type": "inclusion",
       "criterion_domain": "regulatory",
       "criterion_text": "Written informed consent obtained before any study-specific procedure, including consent to mandatory central tumour testing and to germline BRCA testing, with separate documented consent for the return of germline findings.",
-      "basis_class": ["regulatory", "ethical_equipoise"],
+      "basis_class": [
+        "regulatory",
+        "ethical_equipoise"
+      ],
       "derivation_text": "Standard regulatory requirement with a specific extension this design forces. B2 makes germline BRCA testing mandatory as an exclusion gate, so every screened patient is germline tested and some will learn they carry a pathogenic BRCA variant as a consequence of screen failure - a heritable finding with implications for family members, generated by a trial the patient will not then enter. D007 restricts enrolment to settings selected for the absence of PARP-inhibitor maintenance as standard, which are also the settings least likely to have genetic counselling infrastructure.",
       "derivation_refs": [
-        {"type": "nct", "value": "NCT02477644"},
-        {"type": "decision", "value": "D007"}
+        {
+          "type": "nct",
+          "value": "NCT02477644"
+        },
+        {
+          "type": "decision",
+          "value": "D007"
+        }
       ],
       "grounded": true,
       "precedent_departure": "No precedent trial used germline BRCA status as an exclusion, so none faced this consent problem in this form. SOLO1 used it as an inclusion criterion, where the finding preceded the trial rather than being generated by it.",
       "destination": "eligibility",
-      "origin": ["precedent_verbatim", "model_derived"],
+      "origin": [
+        "precedent_verbatim",
+        "model_derived"
+      ],
       "review_priority": "high",
-      "review_focus": "This needs ethics-committee input before the protocol is finalised: specify who counsels a screen-failed patient found to carry a germline BRCA variant, who pays for it, and what happens where no counselling service exists."
+      "review_focus": "This needs ethics-committee input before the protocol is finalised: specify who counsels a screen-failed patient found to carry a germline BRCA variant, who pays for it, and what happens where no counselling service exists.",
+      "review_action": "own"
     },
     {
       "criterion_id": "T2",
       "criterion_type": "inclusion",
       "criterion_domain": "prior_therapy",
       "criterion_text": "Investigator-assessed complete response or partial response to first-line platinum-based chemotherapy, with no clinical, radiological or CA-125 evidence of disease progression at any point during first-line treatment or on the post-treatment assessment. Stable disease is not eligible.",
-      "basis_class": ["mechanism", "interpretability"],
+      "basis_class": [
+        "mechanism",
+        "interpretability"
+      ],
       "derivation_text": "D003 excludes stable disease. Platinum response is a functional read-out of DNA-repair deficiency, arguably more direct than any scar assay since it measures what the tumour did when challenged with a cross-linking agent rather than a historical record of instability. D003 directs that this be retained as an independent selection layer rather than treated as redundant with HRD selection.",
       "derivation_refs": [
-        {"type": "decision", "value": "D003"},
-        {"type": "nct", "value": "NCT01844986"},
-        {"type": "nct", "value": "NCT02655016"}
+        {
+          "type": "decision",
+          "value": "D003"
+        },
+        {
+          "type": "nct",
+          "value": "NCT01844986"
+        },
+        {
+          "type": "nct",
+          "value": "NCT02655016"
+        }
       ],
-      "derived_from_evidence": ["E005"],
+      "derived_from_evidence": [
+        "E005"
+      ],
       "grounded": true,
       "registry_conflict": "D003 carries an internal flag for clinical review - a previous run reached the opposite conclusion, that HRD selection renders platinum-response selection redundant. Applying D003 as registered.",
       "precedent_departure": "Follows SOLO1, which explicitly excluded stable disease. PRIMA required complete or partial response after at least 3 cycles plus a CA-125 condition; this criterion does not adopt PRIMA's numeric CA-125 rule.",
       "destination": "eligibility",
-      "origin": ["register", "precedent_verbatim", "model_derived"],
+      "origin": [
+        "register",
+        "precedent_verbatim",
+        "model_derived"
+      ],
       "review_priority": "high",
-      "review_focus": "Resolve the flagged disagreement inside D003 before the protocol is finalised - decide whether platinum response is an independent selection layer or redundant with HRD selection."
+      "review_focus": "Resolve the flagged disagreement inside D003 before the protocol is finalised - decide whether platinum response is an independent selection layer or redundant with HRD selection.",
+      "review_action": "verify"
     },
     {
       "criterion_id": "P2",
       "criterion_type": "inclusion",
       "criterion_domain": "disease_histology",
       "criterion_text": "FIGO stage III or IV disease at initial diagnosis (FIGO 2014 staging).",
-      "basis_class": ["precedent", "mechanism"],
+      "basis_class": [
+        "precedent",
+        "mechanism"
+      ],
       "derivation_text": "All four precedent trials enrolled FIGO III-IV. The setting is defined by relapse risk after first-line platinum: early-stage disease has a materially lower event rate and a different treatment intent. Staging edition specified because PAOLA-1 used the 1988 classification while SOLO1, PRIMA and ATHENA used the current system.",
       "derivation_refs": [
-        {"type": "nct", "value": "NCT01844986"},
-        {"type": "nct", "value": "NCT02477644"},
-        {"type": "nct", "value": "NCT02655016"},
-        {"type": "nct", "value": "NCT03522246"},
-        {"type": "decision", "value": "D009"}
+        {
+          "type": "nct",
+          "value": "NCT01844986"
+        },
+        {
+          "type": "nct",
+          "value": "NCT02477644"
+        },
+        {
+          "type": "nct",
+          "value": "NCT02655016"
+        },
+        {
+          "type": "nct",
+          "value": "NCT03522246"
+        },
+        {
+          "type": "decision",
+          "value": "D009"
+        }
       ],
       "grounded": true,
       "precedent_departure": "PAOLA-1 required 1988 FIGO IIIB or higher, which excludes IIIA. This trial admits all stage III under 2014 FIGO, matching SOLO1 and PRIMA.",
       "destination": "eligibility",
-      "origin": ["precedent_verbatim", "model_derived"],
+      "origin": [
+        "precedent_verbatim",
+        "model_derived"
+      ],
       "review_priority": "medium",
-      "review_focus": "Confirm the choice of FIGO 2014 over the 1988 edition used by PAOLA-1, since it admits stage IIIA patients that PAOLA-1 excluded."
+      "review_focus": "Confirm the choice of FIGO 2014 over the 1988 edition used by PAOLA-1, since it admits stage IIIA patients that PAOLA-1 excluded.",
+      "review_action": "own"
     }
   ],
   "prerequisites": [
@@ -377,13 +686,27 @@
       "description": "Prospective threshold-setting study establishing a genomic instability score cut-point in BRCA-wild-type high-grade serous ovarian cancer.",
       "blocks": "enrolment",
       "rationale": "Published thresholds were validated on BRCA-inclusive cohorts. Non-HRR-mutant tumours have a median score of 32 against a threshold of 42, so a negative trial would be indistinguishable from a mis-set threshold.",
-      "refs": [{"type": "pmid", "value": "39695768"}, {"type": "decision", "value": "D005"}]
+      "refs": [
+        {
+          "type": "pmid",
+          "value": "39695768"
+        },
+        {
+          "type": "decision",
+          "value": "D005"
+        }
+      ]
     },
     {
       "description": "Accrual feasibility analysis for the cumulative narrowing: serous only, HRD-positive, BRCA-excluded (germline and somatic), geographic restriction, no maintenance bevacizumab.",
       "blocks": "enrolment",
       "rationale": "Constraints narrow multiplicatively and no formal assessment exists. PAOLA-1 classified 17% of its olaparib arm HRD-unknown from failed or insufficient tests, which compounds the problem.",
-      "refs": [{"type": "nct", "value": "NCT02477644"}]
+      "refs": [
+        {
+          "type": "nct",
+          "value": "NCT02477644"
+        }
+      ]
     }
   ],
   "contested_evidence": [
@@ -411,14 +734,25 @@
         "scope": "trial",
         "decision": "Marrow-reserve entry criteria for a DNA-repair-targeting agent must include functional history - prior recovery delays, persistence of cytopenias - not single-timepoint laboratory values alone.",
         "rationale": "S4 is the most explicitly mechanism-derived safety criterion in the design and carries no registered organisational position. Two independent runs reasoned their way to it; nothing pins it.",
-        "refs": [{"type": "label", "value": "FDA", "locator": "5.1"}]
+        "refs": [
+          {
+            "type": "label",
+            "value": "FDA",
+            "locator": "5.1"
+          }
+        ]
       },
       {
         "proposed_id": "D018",
         "scope": "trial",
         "decision": "Germline pathogenic variants in non-BRCA HRR genes are not exclusionary. Stratify on presence, do not gate.",
         "rationale": "D006 governs inclusion only and does not address whether genotype may exclude. Known-lesion carriers are the subgroup in whom scar-positivity is most trustworthy.",
-        "refs": [{"type": "pmid", "value": "36716415"}]
+        "refs": [
+          {
+            "type": "pmid",
+            "value": "36716415"
+          }
+        ]
       },
       {
         "proposed_id": "D019",
@@ -440,7 +774,11 @@
         "entry_id": "D004",
         "as_registered": "PRIMA HRD-negative: 0.68 at primary analysis; 0.65 (0.49-0.87) HR-proficient at 3.5 years. No OS figure recorded.",
         "as_verified": "Final analysis reports HR-proficient updated PFS 0.67 (0.50-0.89) and final OS 0.93 (0.69-1.26). Overall-population OS hazard ratio was 1.01 and formal testing did not proceed to the HRd population, so PRIMA subgroup OS figures are descriptive rather than inferential.",
-        "source": {"type": "nct", "value": "NCT02655016", "data_cut": "final OS analysis"}
+        "source": {
+          "type": "nct",
+          "value": "NCT02655016",
+          "data_cut": "final OS analysis"
+        }
       }
     ]
   },
@@ -451,7 +789,47 @@
     "low": 13,
     "ungrounded": 3,
     "deletions": 10,
-    "register_decisions_applied": ["D001", "D002", "D003", "D004", "D005", "D006", "D007", "D008", "D009", "D010", "D011", "D013", "D015", "D016"],
-    "criteria_without_register_coverage": ["P4", "B4", "B7", "T1", "T3", "T4", "T7", "T8", "S1", "S2", "S3", "S4", "S5", "S7", "S8", "S9", "S10", "S11", "S12", "S14", "O1", "O4", "O6"]
-  }
+    "register_decisions_applied": [
+      "D001",
+      "D002",
+      "D003",
+      "D004",
+      "D005",
+      "D006",
+      "D007",
+      "D008",
+      "D009",
+      "D010",
+      "D011",
+      "D013",
+      "D015",
+      "D016"
+    ],
+    "criteria_without_register_coverage": [
+      "P4",
+      "B4",
+      "B7",
+      "T1",
+      "T3",
+      "T4",
+      "T7",
+      "T8",
+      "S1",
+      "S2",
+      "S3",
+      "S4",
+      "S5",
+      "S7",
+      "S8",
+      "S9",
+      "S10",
+      "S11",
+      "S12",
+      "S14",
+      "O1",
+      "O4",
+      "O6"
+    ]
+  },
+  "payload_scope": "complete"
 }
