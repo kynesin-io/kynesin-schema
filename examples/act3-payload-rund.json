@@ -498,7 +498,7 @@
         },
         {
           "type": "decision",
-          "value": "D010"
+          "value": "M001"
         },
         {
           "type": "label",
@@ -545,7 +545,7 @@
       "basis_class": [
         "precedent"
       ],
-      "derivation_text": "Bundled as a single row under D011 because all fourteen share one derivation: each is a bevacizumab-specific criterion in PAOLA-1, and D002 removes bevacizumab from both maintenance arms. Recording them explicitly rather than silently omitting them matters because this design is derived from PAOLA-1 by name.",
+      "derivation_text": "Bundled as a single row under M002 because all fourteen share one derivation: each is a bevacizumab-specific criterion in PAOLA-1, and D002 removes bevacizumab from both maintenance arms. Recording them explicitly rather than silently omitting them matters because this design is derived from PAOLA-1 by name.",
       "derivation_refs": [
         {
           "type": "decision",
@@ -557,7 +557,7 @@
         },
         {
           "type": "decision",
-          "value": "D011"
+          "value": "M002"
         },
         {
           "type": "nct",
@@ -826,11 +826,11 @@
       "D007",
       "D008",
       "D009",
-      "D010",
-      "D011",
+      "M001",
+      "M002",
       "D013",
       "D015",
-      "D016"
+      "M004"
     ],
     "criteria_without_register_coverage": [
       "S4"
