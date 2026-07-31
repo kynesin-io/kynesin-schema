@@ -49,26 +49,33 @@ Authored by Babu Palanisamy.
 ## Layout
 
 - `versions/kynesin-interchange-<version>.schema.json` — the versioned schemas.
-- `current.json` — a pointer to the current version.
 - `examples/act3-payload-rund.json` — a worked example payload.
+
+Reference a specific version file directly — e.g.
+`versions/kynesin-interchange-0.10.0.schema.json`. There is deliberately no
+moving `current` pointer: for a versioned interchange format, a consumer should
+pin the exact version it was written against and migrate deliberately, not
+track a target that shifts under it.
 
 ## How to validate
 
-The schema targets JSON Schema Draft 2020-12. To validate a payload against the
-current version with the Python `jsonschema` library:
+The schema targets JSON Schema Draft 2020-12. To validate a payload against a
+specific version with the Python `jsonschema` library:
 
 ```python
 import json
 from jsonschema import Draft202012Validator
 
-schema = json.load(open("current.json"))
+schema = json.load(open("versions/kynesin-interchange-0.10.0.schema.json"))
 payload = json.load(open("examples/act3-payload-rund.json"))
 errors = list(Draft202012Validator(schema).iter_errors(payload))
 print("valid" if not errors else errors)
 ```
 
-`examples/act3-payload-rund.json` is a complete payload and validates against
-`current.json`; use it as a reference for the expected shape.
+`examples/act3-payload-rund.json` validates against
+`versions/kynesin-interchange-0.10.0.schema.json`; use it as a reference for the
+expected shape. It is a `partial` payload — its `review_summary` describes the
+nine criteria it carries, not the full run they were drawn from.
 
 ## Scope
 
