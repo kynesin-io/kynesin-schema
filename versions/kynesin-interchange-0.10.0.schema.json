@@ -1,0 +1,1063 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kynesin.io/schema/interchange/0.10.0",
+  "title": "Kynesin Discovery-to-Protocol Interchange Schema",
+  "description": "Carries the scientific reasoning behind a validated target and candidate into a trial's population definition and eligibility criteria, with provenance preserved. Version 0.8.0 - revised after hand-population against a real run (Act 3). Separates deletion from consideration-and-rejection, links prerequisites and boundary decisions to the criteria they concern, allows register-carried figures to be cited in contested evidence, and admits prose metrics. VALIDATED: hand-populated with nine criteria, six evidence entries, two boundary decisions and a full companion set from run D. Version 0.9.0 - adds required review_action (own vs verify), orthogonal to review_priority, so a reviewer is told not just how urgent a criterion is but whether to take a position or check one already taken. The org (Salesforce Review_Action__c) and skill template v1.1 had diverged ahead of the schema; 0.9.0 closes that gap. No other properties changed - the Criterion_Domain__c rename brought the org into line with the schema's existing criterion_domain and required no schema change. Version 0.10.0 - derived_from_evidence becomes an array of {evidence_id, relationship} objects instead of a flat string array, so each criterion-to-evidence edge carries its own relationship (derived_from / supports / complicates / contradicts). This is per-edge and distinct from evidence.polarity; without it, ingestion would flatten every citation to derived_from and lose the case where a criterion cites evidence that undermines it. Breaking change to the array shape, acceptable pre-1.0 and pre-publication.",
+  "type": "object",
+  "required": [
+    "kynesin_version",
+    "provenance",
+    "target",
+    "candidate",
+    "indication",
+    "population",
+    "criteria",
+    "payload_scope"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "kynesin_version": {
+      "type": "string",
+      "const": "0.10.0"
+    },
+    "provenance": {
+      "type": "object",
+      "description": "Where this payload came from. Every field here answers a question a regulator or auditor will ask.",
+      "required": [
+        "session_id",
+        "skill_version",
+        "register_version",
+        "generated_at",
+        "human_confirmed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {
+          "type": "string"
+        },
+        "skill_version": {
+          "type": "string"
+        },
+        "register_version": {
+          "type": "string"
+        },
+        "generated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "operator": {
+          "type": "string"
+        },
+        "human_confirmed": {
+          "type": "boolean",
+          "description": "Did a human review the assembled payload before transmission. Nothing may be written to a system of record with this false."
+        },
+        "supersedes": {
+          "type": "string",
+          "description": "session_id of a prior payload this replaces. Supersede with lineage; never update in place."
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "required": [
+        "identifiers",
+        "mechanism"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "identifiers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "mechanism": {
+          "type": "object",
+          "required": [
+            "description",
+            "model_current"
+          ],
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "model_current": {
+              "type": "boolean",
+              "description": "Is the mechanistic account still standing. Per R003 - a criterion derived from a superseded model looks authoritative and is not."
+            },
+            "superseded_by": {
+              "$ref": "#/$defs/pointer"
+            },
+            "refs": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/pointer"
+              }
+            }
+          }
+        },
+        "tractability": {
+          "type": "string"
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "required": [
+        "identifiers",
+        "modality"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "identifiers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "modality": {
+          "type": "string"
+        },
+        "route": {
+          "type": "string"
+        },
+        "liabilities": {
+          "type": "array",
+          "description": "Known pharmacological liabilities. Most exclusion criteria trace here.",
+          "items": {
+            "type": "object",
+            "required": [
+              "description",
+              "refs"
+            ],
+            "properties": {
+              "description": {
+                "type": "string"
+              },
+              "quantified": {
+                "type": "string"
+              },
+              "refs": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/pointer"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "indication": {
+      "type": "object",
+      "required": [
+        "description"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "identifiers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "setting": {
+          "type": "string",
+          "description": "e.g. first-line maintenance, second-line treatment, adjuvant"
+        },
+        "design": {
+          "type": "string",
+          "enum": [
+            "monotherapy",
+            "combination"
+          ]
+        },
+        "combination_agents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "population": {
+      "type": "object",
+      "required": [
+        "hypothesis",
+        "boundary_decisions"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "hypothesis": {
+          "type": "string",
+          "description": "Which patients should benefit, and why."
+        },
+        "biomarker": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "assay_modality": {
+              "type": "string"
+            },
+            "threshold": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "threshold_grounded": {
+              "type": "boolean"
+            },
+            "is_gate": {
+              "type": "boolean"
+            },
+            "refs": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/pointer"
+              }
+            }
+          }
+        },
+        "boundary_decisions": {
+          "type": "array",
+          "description": "Ambiguities that had to be resolved before criteria could be derived. This is where reasoning disappears invisibly - the final protocol reads as if the boundary was always obvious.",
+          "items": {
+            "type": "object",
+            "required": [
+              "ambiguity",
+              "decision",
+              "rationale",
+              "decided_by"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "ambiguity": {
+                "type": "string"
+              },
+              "options_considered": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "option": {
+                      "type": "string"
+                    },
+                    "regulatory_consequence": {
+                      "type": "string"
+                    },
+                    "ethical_consequence": {
+                      "type": "string"
+                    },
+                    "statistical_consequence": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "decision": {
+                "type": "string"
+              },
+              "rationale": {
+                "type": "string"
+              },
+              "consequence_if_other": {
+                "type": "string"
+              },
+              "decided_by": {
+                "type": "string",
+                "enum": [
+                  "human_in_session",
+                  "register",
+                  "agent_unilateral"
+                ],
+                "description": "agent_unilateral is a flag, not a value - it means a boundary was set without human input and should be reviewed."
+              },
+              "register_ref": {
+                "$ref": "#/$defs/pointer"
+              },
+              "produced_criteria": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "criterion_id values this decision produced or altered."
+              }
+            }
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "description": "The evidence base criteria are derived from. Criteria reference these by evidence_id.",
+      "items": {
+        "type": "object",
+        "required": [
+          "evidence_id",
+          "evidence_class",
+          "finding",
+          "refs"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "evidence_id": {
+            "type": "string"
+          },
+          "evidence_class": {
+            "type": "string",
+            "enum": [
+              "curated_gene_disease_validity",
+              "dosage_sensitivity",
+              "rare_variant_burden",
+              "penetrance_prospective",
+              "penetrance_retrospective",
+              "prevalence_in_cases",
+              "somatic_tumour_genomics",
+              "aggregated_association",
+              "variant_expert_classification",
+              "clinical_actionability",
+              "common_variant_gwas",
+              "preclinical_mechanism",
+              "clinical_trial_result",
+              "regulatory_label",
+              "assay_validation",
+              "pharmacovigilance"
+            ]
+          },
+          "chain_role": {
+            "type": "string",
+            "enum": [
+              "conceptual_antecedent",
+              "foundational",
+              "preclinical_extension",
+              "preclinical_generalisation",
+              "mechanism_revision",
+              "resistance",
+              "clinical_first_in_human",
+              "clinical_phase2",
+              "clinical_randomised",
+              "clinical_population_definition",
+              "review"
+            ],
+            "description": "Position in the discovery arc. Orthogonal to evidence_class."
+          },
+          "co_equal_with": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "evidence_id references. For simultaneous discovery."
+          },
+          "finding": {
+            "type": "string"
+          },
+          "polarity": {
+            "type": "string",
+            "enum": [
+              "supporting",
+              "neutral",
+              "contradicting",
+              "not_applicable"
+            ],
+            "description": "not_applicable covers evidence classes that are the wrong lens for this target, which is itself informative."
+          },
+          "strength_native": {
+            "type": "string",
+            "description": "Verbatim from the source, e.g. 'ClinGen Definitive'. Never discard the source's own framing."
+          },
+          "strength_normalized": {
+            "type": "string",
+            "enum": [
+              "definitive",
+              "strong",
+              "moderate",
+              "weak",
+              "contested",
+              "insufficient"
+            ]
+          },
+          "metric": {
+            "$ref": "#/$defs/metric"
+          },
+          "population_studied": {
+            "type": "string",
+            "description": "Per R005 - which subgroup, which endpoint, which data cut. Composite subgroups are not interchangeable with their components."
+          },
+          "method": {
+            "type": "string"
+          },
+          "cohort": {
+            "type": "string"
+          },
+          "caveat": {
+            "type": "string",
+            "description": "Must exist as a field, or caveats hide in whichever column is least structured."
+          },
+          "refs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/$defs/pointer"
+            }
+          },
+          "source_completeness": {
+            "type": "string",
+            "enum": [
+              "registry",
+              "protocol",
+              "publication",
+              "label",
+              "database"
+            ],
+            "description": "Per R004 - registry records omit lab thresholds and prior-therapy exclusions."
+          }
+        }
+      }
+    },
+    "criteria": {
+      "type": "array",
+      "description": "Maps 1:1 onto the Trial-Readiness Handoff skill output contract, plus structural links the CSV cannot carry.",
+      "items": {
+        "type": "object",
+        "required": [
+          "criterion_id",
+          "criterion_type",
+          "criterion_domain",
+          "criterion_text",
+          "basis_class",
+          "derivation_text",
+          "grounded",
+          "origin",
+          "review_priority",
+          "review_action"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "criterion_id": {
+            "type": "string"
+          },
+          "criterion_type": {
+            "type": "string",
+            "enum": [
+              "inclusion",
+              "exclusion",
+              "neither"
+            ]
+          },
+          "criterion_domain": {
+            "type": "string",
+            "enum": [
+              "disease_histology",
+              "biomarker",
+              "prior_therapy",
+              "timing",
+              "organ_function",
+              "haematology",
+              "drug_interaction",
+              "comorbidity",
+              "reproductive",
+              "operational",
+              "regulatory"
+            ]
+          },
+          "criterion_text": {
+            "type": "string"
+          },
+          "basis_class": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "enum": [
+                "mechanism",
+                "pharmacology",
+                "precedent",
+                "regulatory",
+                "operational",
+                "ethical_equipoise",
+                "interpretability",
+                "inherited",
+                "not_groundable"
+              ]
+            }
+          },
+          "basis_qualifier": {
+            "type": "string"
+          },
+          "derivation_text": {
+            "type": "string"
+          },
+          "derivation_refs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/pointer"
+            }
+          },
+          "derived_from_evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["evidence_id", "relationship"],
+              "additionalProperties": false,
+              "properties": {
+                "evidence_id": {
+                  "type": "string"
+                },
+                "relationship": {
+                  "type": "string",
+                  "enum": ["derived_from", "supports", "complicates", "contradicts"],
+                  "description": "How this criterion relates to this evidence. Per-edge, and distinct from evidence.polarity which records the evidence's own character. A criterion citing evidence that complicates or contradicts it is the most valuable thing this model expresses; a flat citation list cannot carry it."
+                },
+                "note": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "evidence_id references with the per-edge relationship. THE traceability edge - the reason this schema exists. Not every criterion has one: a criterion resting on convention ('all four precedent trials enrolled stage III-IV') cites precedent rather than a characterised finding. Leave empty in that case rather than manufacturing an evidence entry."
+          },
+          "attributable_to": {
+            "type": "string",
+            "description": "Which agent this criterion exists because of, in a combination design."
+          },
+          "grounded": {
+            "type": "boolean"
+          },
+          "gap_description": {
+            "type": "string"
+          },
+          "precedent_departure": {
+            "type": "string"
+          },
+          "registry_conflict": {
+            "type": "string"
+          },
+          "destination": {
+            "type": "string",
+            "enum": [
+              "eligibility",
+              "dsmb_charter",
+              "sap",
+              "prerequisite_study",
+              "protocol_rationale"
+            ],
+            "default": "eligibility",
+            "description": "Not every derived finding belongs in the eligibility list."
+          },
+          "deleted_from_precedent": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "what",
+                "source"
+              ],
+              "properties": {
+                "what": {
+                  "type": "string",
+                  "description": "The criterion as it appeared in the precedent trial."
+                },
+                "source": {
+                  "$ref": "#/$defs/pointer"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "For criterion_type=neither where precedent HAD this criterion and it is being removed. An array because a single row may bundle several deletions sharing one derivation (see D011). Silently dropping an exclusion from a named precedent design is indistinguishable from oversight."
+          },
+          "replaced_by": {
+            "type": "string",
+            "description": "Per D014 - when unsourceable specifics are deleted but the underlying concern is restated."
+          },
+          "origin": {
+            "type": "array",
+            "minItems": 1,
+            "description": "What each part of this criterion came from. Lets a reviewer trust the register and the cited sources rather than the model. A criterion may be decided by the register, worded from precedent, and carry a model-derived threshold - hence an array. Be honest: hand-classification of real output found that almost every criterion contains some model_derived component (composed wording, a chosen threshold, an assembly judgment). Recording that faithfully is the point; review_priority handles triage.",
+            "items": {
+              "type": "string",
+              "enum": [
+                "register",
+                "precedent_verbatim",
+                "label_verbatim",
+                "model_derived",
+                "human_specified"
+              ]
+            }
+          },
+          "origin_detail": {
+            "type": "object",
+            "description": "Optional per-component breakdown where the criterion is mixed. Keys are field names; values are origin values.",
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "register",
+                "precedent_verbatim",
+                "label_verbatim",
+                "model_derived",
+                "human_specified"
+              ]
+            }
+          },
+          "review_priority": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "description": "How much it matters if this criterion is wrong - NOT whether model-derived content is present. Presence-based priority was tried and abandoned: it marked 9 of 9 hand-classified criteria for review and discriminated nothing. high = a clinical, ethical or regulatory position someone must own. medium = a chosen figure or a verification against source. low = non-contentious, or already flagged by grounded=false."
+          },
+          "review_focus": {
+            "type": "string",
+            "description": "One sentence naming what specifically needs a reviewer's judgment or verification. Required whenever origin includes model_derived. A criterion may need both verification and judgment on different components - say both. Example: 'Verify the haematology thresholds against the PAOLA-1 protocol rather than its registry record; judge the tightening of the transfusion window from two weeks to four.'"
+          },
+          "review_action": {
+            "type": "string",
+            "enum": ["own", "verify"],
+            "description": "Orthogonal to review_priority. own = a reviewer must take a position; there is a judgment here nobody has made, or one made in session that needs sign-off. verify = the position is already taken and a reviewer is checking it was implemented correctly, or that a figure matches its source. A criterion implementing a register decision is frequently high priority and verify action: high consequence, position already owned."
+          },
+          "considered_and_rejected": {
+            "type": "object",
+            "required": [
+              "what",
+              "why_rejected"
+            ],
+            "properties": {
+              "what": {
+                "type": "string",
+                "description": "The criterion that was considered and not adopted."
+              },
+              "why_rejected": {
+                "type": "string"
+              },
+              "precedent_position": {
+                "type": "string",
+                "description": "What precedent trials did, if anything."
+              }
+            },
+            "description": "For criterion_type=neither where NO precedent had this criterion and adding it was considered and rejected. Distinct from deletion: hand-population showed the two were being forced into one field, which made the field say the opposite of its name."
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "grounded": {
+                  "const": false
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "gap_description"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "origin": {
+                  "contains": {
+                    "const": "model_derived"
+                  }
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "review_focus"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "criterion_type": {
+                  "const": "neither"
+                }
+              }
+            },
+            "then": {
+              "anyOf": [
+                {
+                  "required": [
+                    "deleted_from_precedent"
+                  ]
+                },
+                {
+                  "required": [
+                    "considered_and_rejected"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "prerequisites": {
+      "type": "array",
+      "description": "Must complete before the trial can open. Distinct from gaps in individual criteria.",
+      "items": {
+        "type": "object",
+        "required": [
+          "description",
+          "blocks"
+        ],
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "blocks": {
+            "type": "string",
+            "enum": [
+              "enrolment",
+              "analysis",
+              "submission"
+            ]
+          },
+          "rationale": {
+            "type": "string"
+          },
+          "refs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/pointer"
+            }
+          },
+          "blocks_criterion": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "criterion_id values this prerequisite blocks. Without it a reader must match prose to connect an ungrounded criterion to the study that would close it."
+          }
+        }
+      }
+    },
+    "contested_evidence": {
+      "type": "array",
+      "description": "Where the literature genuinely disagrees. Both sides cited like-for-like on subgroup and endpoint.",
+      "items": {
+        "type": "object",
+        "required": [
+          "question",
+          "positions"
+        ],
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "positions": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "properties": {
+                "claim": {
+                  "type": "string"
+                },
+                "evidence_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "possible_confound": {
+                  "type": "string"
+                },
+                "refs": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/pointer"
+                  },
+                  "description": "Typed pointers, including decision: references. Register entries carry characterised figures the evidence array may not, and hand-population found evidence_ids unpopulatable for exactly that reason."
+                }
+              }
+            }
+          },
+          "resolution": {
+            "type": "string",
+            "description": "How the design handles the disagreement. Not which side is right."
+          }
+        }
+      }
+    },
+    "register_status": {
+      "type": "object",
+      "description": "Register amendments are proposals, not changes. A wrong register entry is worse than a missing one.",
+      "properties": {
+        "proposed_entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "proposed_id": {
+                "type": "string"
+              },
+              "scope": {
+                "type": "string",
+                "enum": [
+                  "trial",
+                  "method"
+                ]
+              },
+              "decision": {
+                "type": "string"
+              },
+              "rationale": {
+                "type": "string"
+              },
+              "refs": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/pointer"
+                }
+              }
+            }
+          }
+        },
+        "discrepancies_found": {
+          "type": "array",
+          "description": "Register entries found to be factually wrong, with the primary source that contradicts them.",
+          "items": {
+            "type": "object",
+            "required": [
+              "entry_id",
+              "as_registered",
+              "as_verified",
+              "source"
+            ],
+            "properties": {
+              "entry_id": {
+                "type": "string"
+              },
+              "as_registered": {
+                "type": "string"
+              },
+              "as_verified": {
+                "type": "string"
+              },
+              "source": {
+                "$ref": "#/$defs/pointer"
+              }
+            }
+          }
+        }
+      }
+    },
+    "review_summary": {
+      "type": "object",
+      "description": "Counts for the review surface. Redundant with the criteria array by design - a reviewer sees this before opening anything. The honest proposition is not 'few rows need review' but 'here is exactly what needs looking at, ranked by consequence'.",
+      "required": [
+        "total",
+        "high",
+        "medium",
+        "low",
+        "ungrounded",
+        "deletions"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "total": {
+          "type": "integer"
+        },
+        "high": {
+          "type": "integer"
+        },
+        "medium": {
+          "type": "integer"
+        },
+        "low": {
+          "type": "integer"
+        },
+        "ungrounded": {
+          "type": "integer"
+        },
+        "deletions": {
+          "type": "integer",
+          "description": "Count of criterion_type=neither. Hand-classification found deletions cluster at the top of the review queue - what was removed needs more scrutiny than what was included, and no protocol review process works that way today because deletions are currently invisible."
+        },
+        "register_decisions_applied": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "criteria_without_register_coverage": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "criterion_id values carrying no decision: pointer. These are positions the organisation has not yet owned. Surfaced as candidate register entries."
+        }
+      }
+    },
+    "payload_scope": {
+      "type": "string",
+      "enum": [
+        "complete",
+        "partial",
+        "amendment"
+      ],
+      "description": "Whether criteria[] contains every criterion for this design. complete = all criteria. partial = a subset, e.g. one domain or a review slice. amendment = criteria changed since the payload named in provenance.supersedes. review_summary always describes THIS payload, not the underlying run."
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "object",
+      "description": "An identifier is an object, not a string. Namespace, level and status are all required for it to actually resolve.",
+      "required": [
+        "value",
+        "namespace"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string",
+          "enum": [
+            "hgnc",
+            "ensembl",
+            "uniprot",
+            "entrez",
+            "chembl",
+            "mondo",
+            "icd10",
+            "snomed",
+            "loinc",
+            "rxnorm",
+            "meddra"
+          ]
+        },
+        "level": {
+          "type": "string",
+          "enum": [
+            "gene",
+            "transcript",
+            "protein",
+            "variant",
+            "disease",
+            "compound"
+          ],
+          "description": "Per R002 - joining on 'the Ensembl ID' without checking level produces silent join failures."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "reviewed",
+            "unreviewed",
+            "canonical",
+            "deprecated"
+          ]
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Per R001 - required for retrieval recall. Older literature predates current nomenclature."
+        }
+      }
+    },
+    "pointer": {
+      "type": "object",
+      "description": "A typed, resolvable reference. Four pointer types were observed in practice; a string field would lose the type.",
+      "required": [
+        "type",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "pmid",
+            "doi",
+            "nct",
+            "label",
+            "protocol",
+            "decision",
+            "database"
+          ]
+        },
+        "value": {
+          "type": "string"
+        },
+        "locator": {
+          "type": "string",
+          "description": "Section within the source, e.g. FDA label section, protocol clause."
+        },
+        "data_cut": {
+          "type": "string",
+          "description": "Which analysis. Interim and final figures differ."
+        }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "description": "Decomposed where possible, prose in `text` otherwise. Effect sizes buried in narrative cannot be compared, but a fabricated decomposition is worse than an honest string.",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "OR",
+            "HR",
+            "RR",
+            "risk",
+            "prevalence",
+            "score",
+            "p_value",
+            "median",
+            "IQR"
+          ]
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "PFS, OS, ORR. Per R005 - an ITT figure is not a subgroup figure."
+        },
+        "value": {
+          "type": "number"
+        },
+        "ci_low": {
+          "type": "number"
+        },
+        "ci_high": {
+          "type": "number"
+        },
+        "ci_level": {
+          "type": "number",
+          "default": 0.95
+        },
+        "p_value": {
+          "type": "number"
+        },
+        "n_total": {
+          "type": "integer"
+        },
+        "n_cases": {
+          "type": "integer"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string",
+          "description": "Verbatim numeric claim where decomposition is not available or not meaningful. Producers emit prose far more often than decomposed figures; requiring decomposition invites invention."
+        }
+      }
+    }
+  }
+}

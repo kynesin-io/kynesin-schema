@@ -1,5 +1,5 @@
 {
-  "kynesin_version": "0.9.0",
+  "kynesin_version": "0.10.0",
   "provenance": {
     "session_id": "run-d-2026-07-30",
     "skill_version": "trial-readiness-handoff@0.4",
@@ -327,9 +327,18 @@
         }
       ],
       "derived_from_evidence": [
-        "E001",
-        "E002",
-        "E003"
+        {
+          "evidence_id": "E001",
+          "relationship": "derived_from"
+        },
+        {
+          "evidence_id": "E002",
+          "relationship": "contradicts"
+        },
+        {
+          "evidence_id": "E003",
+          "relationship": "contradicts"
+        }
       ],
       "grounded": false,
       "gap_description": "No defensible cut-point can be supplied. Published thresholds were validated on BRCA-inclusive cohorts, and the 42 value entered ovarian practice as part of a composite definition - BRCA mutation OR score at or above 42. Removing the BRCA arm truncates the upper tail the threshold was fitted against. Closing this requires a prospective threshold-setting study in BRCA-wild-type high-grade serous ovarian cancer.",
@@ -365,7 +374,10 @@
         }
       ],
       "derived_from_evidence": [
-        "E005"
+        {
+          "evidence_id": "E005",
+          "relationship": "derived_from"
+        }
       ],
       "grounded": true,
       "destination": "eligibility",
@@ -402,8 +414,14 @@
         }
       ],
       "derived_from_evidence": [
-        "E002",
-        "E003"
+        {
+          "evidence_id": "E002",
+          "relationship": "complicates"
+        },
+        {
+          "evidence_id": "E003",
+          "relationship": "complicates"
+        }
       ],
       "grounded": true,
       "precedent_departure": "PAOLA-1 and PRIMA enrolled these patients without separating them out. This trial enrols them but stratifies, which no precedent trial did.",
@@ -447,7 +465,10 @@
         }
       ],
       "derived_from_evidence": [
-        "E004"
+        {
+          "evidence_id": "E004",
+          "relationship": "derived_from"
+        }
       ],
       "grounded": true,
       "destination": "eligibility",
@@ -491,7 +512,10 @@
         }
       ],
       "derived_from_evidence": [
-        "E006"
+        {
+          "evidence_id": "E006",
+          "relationship": "derived_from"
+        }
       ],
       "grounded": true,
       "precedent_departure": "Directly departs from PAOLA-1, which excluded HIV-seropositive patients and those with known active hepatitis B or C.",
@@ -622,7 +646,10 @@
         }
       ],
       "derived_from_evidence": [
-        "E005"
+        {
+          "evidence_id": "E005",
+          "relationship": "derived_from"
+        }
       ],
       "grounded": true,
       "registry_conflict": "D003 carries an internal flag for clinical review - a previous run reached the opposite conclusion, that HRD selection renders platinum-response selection redundant. Applying D003 as registered.",
