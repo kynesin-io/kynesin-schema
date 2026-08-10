@@ -54,6 +54,13 @@ Authored by Babu Palanisamy.
   omission. Closes a divergence in place since 0.6.0: the skill template said
   registers may extend these enums per therapeutic area while the schema kept
   them closed.
+- **0.12.0** — added `maxLength` to every string field the Salesforce
+  ingestion maps to a length-bounded column, so a payload that would fail to
+  write (`STRING_TOO_LONG`) is caught at validation rather than costing a
+  submission round trip. Caps are per-field, from the actual org field
+  lengths — e.g. `register_version` 50, `evidence_id` / `criterion_id` 10,
+  most identifiers 255, prose fields 1000–5000. Purely additive: a 0.11.0
+  payload within the caps is a valid 0.12.0 payload.
 
 ## Layout
 
@@ -75,14 +82,14 @@ specific version with the Python `jsonschema` library:
 import json
 from jsonschema import Draft202012Validator
 
-schema = json.load(open("versions/kynesin-interchange-0.11.0.schema.json"))
+schema = json.load(open("versions/kynesin-interchange-0.12.0.schema.json"))
 payload = json.load(open("examples/act3-payload-rund.json"))
 errors = list(Draft202012Validator(schema).iter_errors(payload))
 print("valid" if not errors else errors)
 ```
 
 `examples/act3-payload-rund.json` validates against
-`versions/kynesin-interchange-0.11.0.schema.json`; use it as a reference for the
+`versions/kynesin-interchange-0.12.0.schema.json`; use it as a reference for the
 expected shape. It is a `partial` payload — its `review_summary` describes the
 nine criteria it carries, not the full run they were drawn from.
 
