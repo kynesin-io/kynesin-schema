@@ -1,5 +1,11 @@
 {
-  "kynesin_version": "0.10.0",
+  "kynesin_version": "0.11.0",
+  "enum_extensions": {
+    "register": "ovarian-parp-hrd",
+    "register_version": "1.2",
+    "criterion_domain": [],
+    "evidence_class": []
+  },
   "provenance": {
     "session_id": "run-d-2026-07-30",
     "skill_version": "trial-readiness-handoff@0.4",

@@ -45,6 +45,15 @@ Authored by Babu Palanisamy.
   `{evidence_id, relationship}` objects, so each criterion-to-evidence edge
   carries its own relationship (`derived_from` / `supports` / `complicates` /
   `contradicts`) rather than a flat citation list.
+- **0.11.0** — added the extension mechanism the schema had always lacked.
+  `criterion_domain` and `evidence_class` are now open strings whose core
+  values are carried as `examples`; any value outside the core set must be
+  declared in a new required top-level `enum_extensions` block, with a
+  `scope_boundary` per declared value. A payload using only core values
+  declares empty arrays — an assertion that it extends nothing, not an
+  omission. Closes a divergence in place since 0.6.0: the skill template said
+  registers may extend these enums per therapeutic area while the schema kept
+  them closed.
 
 ## Layout
 
@@ -66,14 +75,14 @@ specific version with the Python `jsonschema` library:
 import json
 from jsonschema import Draft202012Validator
 
-schema = json.load(open("versions/kynesin-interchange-0.10.0.schema.json"))
+schema = json.load(open("versions/kynesin-interchange-0.11.0.schema.json"))
 payload = json.load(open("examples/act3-payload-rund.json"))
 errors = list(Draft202012Validator(schema).iter_errors(payload))
 print("valid" if not errors else errors)
 ```
 
 `examples/act3-payload-rund.json` validates against
-`versions/kynesin-interchange-0.10.0.schema.json`; use it as a reference for the
+`versions/kynesin-interchange-0.11.0.schema.json`; use it as a reference for the
 expected shape. It is a `partial` payload — its `review_summary` describes the
 nine criteria it carries, not the full run they were drawn from.
 
