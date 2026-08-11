@@ -140,6 +140,12 @@ APEX_CODE_ASSERTIONS = [
     ("apex-grounded-boolean-check",
      r"groundedO\s+instanceof\s+Boolean",
      "grounded is validated as a JSON boolean (not a string/number)"),
+    # Detects deletion of the v0.13.0 conditional: an edge-bearing payload
+    # must carry its evidence base (the provenance-stripped state must stay
+    # unrepresentable). Paired with the schema-side conditional check below.
+    ("apex-evidence-required-when-edges",
+     r"firstEdgeBearer\s*!=\s*null\s*&&\s*evidence\.isEmpty\(\)",
+     "evidence block is required whenever any criterion carries edges"),
     # Detects deletion of pointer-object validation on evidence refs items —
     # the check that each refs[] item is an object whose type is a pointer_type.
     ("apex-refs-pointer-type-check",
@@ -686,6 +692,22 @@ def check_shapes(schema, contract, apex_text, rep):
         tval = (contract.get("shapes") or {}).get("top_level_additional_properties", "MISSING")
         rep.check_eq_exact(code, "top-level additionalProperties", "schema", top_ap,
                            "template shapes.top_level_additional_properties", tval)
+
+    # -- v0.13.0 conditional: schema side. The newest schema must declare the
+    # root if/then making an edge-bearing payload require its evidence base.
+    # (Apex side is the apex-evidence-required-when-edges assertion below.)
+    code = "shape-conditional-evidence-required"
+    cond_if, cond_then = schema.get("if"), schema.get("then")
+    declares = (isinstance(cond_if, dict) and isinstance(cond_then, dict)
+                and "derived_from_evidence" in json.dumps(cond_if)
+                and "evidence" in (cond_then.get("required") or []))
+    if declares:
+        rep.ok(code, "schema declares the evidence-required-when-edges conditional (if/then)")
+    else:
+        rep.fail(code, "schema does NOT declare the evidence-required-when-edges conditional — "
+                       "a payload with derived_from_evidence edges and no evidence block would "
+                       "validate clean, permitting the provenance-stripped state by design "
+                       "(required as of interchange 0.13.0).")
 
     # -- Apex code assertions: enforcement that lives in code, not constants
     for code, pattern, meaning in APEX_CODE_ASSERTIONS:

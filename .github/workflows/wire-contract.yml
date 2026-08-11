@@ -65,7 +65,7 @@ jobs:
           sys.exit(1 if failures else 0)
           EOF
 
-      - name: Validate every example against the newest schema version
+      - name: Validate every example against the schema version it declares
         run: |
           python3 - <<'EOF'
           import glob, json, re, sys
@@ -85,10 +85,11 @@ jobs:
               if m: versions[tuple(map(int, m.group(1).split(".")))] = f
           if not versions:
               print("FAIL: no versioned schema files found"); sys.exit(1)
-          newest = versions[max(versions)]
-          print(f"Validating examples against newest schema: {newest}")
-          schema = json.load(open(newest))
-          validator = jsonschema.Draft202012Validator(schema)
+          # Each example validates against the schema version its own
+          # kynesin_version declares — schemas pin the version with a const,
+          # so validating an older example against the newest schema would
+          # always fail on the const alone. An example declaring an unknown
+          # or missing version is itself a failure.
           examples = sorted(glob.glob("examples/*"))
           if not examples:
               print("NOTICE: no examples/ payloads found — nothing to validate.")
@@ -99,10 +100,16 @@ jobs:
                   payload = json.load(open(f))
               except (json.JSONDecodeError, UnicodeDecodeError) as e:
                   print(f"FAIL  {f}: not valid JSON: {e}"); failures += 1; continue
+              declared = payload.get("kynesin_version")
+              key = tuple(map(int, declared.split("."))) if isinstance(declared, str) and re.fullmatch(r"\d+\.\d+\.\d+", declared) else None
+              if key not in versions:
+                  print(f"FAIL  {f}: declares kynesin_version {declared!r}, no matching schema file"); failures += 1; continue
+              schema_file = versions[key]
+              validator = jsonschema.Draft202012Validator(json.load(open(schema_file)))
               errs = sorted(validator.iter_errors(payload), key=lambda e: list(e.path))
               if errs:
                   failures += 1
-                  print(f"FAIL  {f}: {len(errs)} validation error(s) against {newest}")
+                  print(f"FAIL  {f}: {len(errs)} validation error(s) against {schema_file}")
                   for e in errs[:10]:
                       loc = "/".join(map(str, e.path)) or "(top level)"
                       print(f"        {loc}: {e.message[:200]}")
