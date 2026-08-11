@@ -1,0 +1,160 @@
+# Schema-side wire-contract CI.
+#
+# 1. Every versions/*.schema.json must parse as JSON and (when the jsonschema
+#    package installs cleanly) meta-validate against its declared JSON Schema
+#    dialect.
+# 2. Every examples/* payload must validate against the NEWEST schema version.
+# 3. Cross-repo half: if the repository secret KYNESIN_SFDX_TOKEN is configured,
+#    the private kynesin-io/kynesin-sfdx repo is checked out and the
+#    schema<->Apex drift comparison runs (scripts/check_wire_contract.py — a
+#    copy synced from kynesin-sfdx/scripts/check_wire_contract.py so this
+#    workflow is self-contained; keep the two in sync when the checker changes).
+#    Without the secret, that half prints a loud notice and is skipped WITHOUT
+#    failing — a schema-only contributor cannot see the private repo.
+name: wire-contract
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate-schemas-and-examples:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout kynesin-schema
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install jsonschema (best-effort)
+        id: jsonschema
+        continue-on-error: true
+        run: python3 -m pip install jsonschema
+
+      - name: Validate every schema parses as JSON (+ meta-validate if jsonschema installed)
+        run: |
+          python3 - <<'EOF'
+          import glob, json, sys
+          try:
+              import jsonschema
+              have_js = True
+          except ImportError:
+              have_js = False
+              print("NOTICE: jsonschema package unavailable — json.load parse check only, "
+                    "no meta-validation this run.")
+          files = sorted(glob.glob("versions/*.schema.json"))
+          if not files:
+              print("FAIL: no versions/*.schema.json found"); sys.exit(1)
+          failures = 0
+          for f in files:
+              try:
+                  s = json.load(open(f))
+              except json.JSONDecodeError as e:
+                  print(f"FAIL  {f}: not valid JSON: {e}"); failures += 1; continue
+              if have_js:
+                  try:
+                      jsonschema.validators.validator_for(s).check_schema(s)
+                      print(f"PASS  {f}: parses and meta-validates")
+                  except jsonschema.SchemaError as e:
+                      print(f"FAIL  {f}: not a valid JSON Schema: {e.message}"); failures += 1
+              else:
+                  print(f"PASS  {f}: parses as JSON")
+          sys.exit(1 if failures else 0)
+          EOF
+
+      - name: Validate every example against the newest schema version
+        run: |
+          python3 - <<'EOF'
+          import glob, json, re, sys
+          try:
+              import jsonschema
+          except ImportError:
+              # Without a validator, example conformance cannot be checked at all.
+              # That would make this step silently worthless, so fail loudly
+              # rather than green-wash.
+              print("FAIL: jsonschema package unavailable — example payloads cannot "
+                    "be validated. Fix the pip install step.")
+              sys.exit(1)
+          pat = re.compile(r"kynesin-interchange-(\d+\.\d+\.\d+)\.schema\.json$")
+          versions = {}
+          for f in glob.glob("versions/*.schema.json"):
+              m = pat.search(f)
+              if m: versions[tuple(map(int, m.group(1).split(".")))] = f
+          if not versions:
+              print("FAIL: no versioned schema files found"); sys.exit(1)
+          newest = versions[max(versions)]
+          print(f"Validating examples against newest schema: {newest}")
+          schema = json.load(open(newest))
+          validator = jsonschema.Draft202012Validator(schema)
+          examples = sorted(glob.glob("examples/*"))
+          if not examples:
+              print("NOTICE: no examples/ payloads found — nothing to validate.")
+              sys.exit(0)
+          failures = 0
+          for f in examples:
+              try:
+                  payload = json.load(open(f))
+              except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                  print(f"FAIL  {f}: not valid JSON: {e}"); failures += 1; continue
+              errs = sorted(validator.iter_errors(payload), key=lambda e: list(e.path))
+              if errs:
+                  failures += 1
+                  print(f"FAIL  {f}: {len(errs)} validation error(s) against {newest}")
+                  for e in errs[:10]:
+                      loc = "/".join(map(str, e.path)) or "(top level)"
+                      print(f"        {loc}: {e.message[:200]}")
+              else:
+                  print(f"PASS  {f}: valid against {newest}")
+          sys.exit(1 if failures else 0)
+          EOF
+
+  cross-repo-apex-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout kynesin-schema
+        uses: actions/checkout@v4
+
+      - name: Check for KYNESIN_SFDX_TOKEN
+        id: token
+        env:
+          KYNESIN_SFDX_TOKEN: ${{ secrets.KYNESIN_SFDX_TOKEN }}
+        run: |
+          if [ -n "$KYNESIN_SFDX_TOKEN" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "=============================================================================="
+            echo "NOTICE: KYNESIN_SFDX_TOKEN secret is not configured."
+            echo "The schema<->Apex drift comparison against the private kynesin-io/kynesin-sfdx"
+            echo "repo is SKIPPED this run. It still runs in kynesin-sfdx CI and in the local"
+            echo "pre-commit hook, so drift is not unguarded — but configure the secret (a"
+            echo "read-only token for kynesin-io/kynesin-sfdx) to close the loop from this side."
+            echo "=============================================================================="
+          fi
+
+      - name: Checkout kynesin-sfdx (private, token-gated)
+        if: steps.token.outputs.present == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: kynesin-io/kynesin-sfdx
+          token: ${{ secrets.KYNESIN_SFDX_TOKEN }}
+          path: kynesin-sfdx-clone
+
+      - name: Set up Python
+        if: steps.token.outputs.present == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run schema<->Apex drift check
+        if: steps.token.outputs.present == 'true'
+        # The skill template is private to a different checkout and absent here;
+        # the checker loudly skips template checks and compares schema<->Apex.
+        run: |
+          python3 scripts/check_wire_contract.py \
+            --schema . \
+            --apex kynesin-sfdx-clone/force-app/main/default/classes/KynesinIngestion.cls \
+            --template kynesin-sfdx-clone/kynesin-skill/template/SKILL.md
