@@ -68,12 +68,14 @@ CONTRACT_ENUM_KEYS = {
     "criterion_type", "polarity", "strength_normalized", "source_completeness",
     "review_priority", "review_action", "relationship", "pointer_type",
     "origin", "basis_class", "payload_scope", "metric_type", "register_status_scope",
+    "threshold_operator",
 }
 CONTRACT_CORE_KEYS = {"criterion_domain", "evidence_class"}
 CONTRACT_SHAPE_KEYS = {
     "refs", "derivation_refs", "derived_from_evidence", "grounded", "metric",
     "provenance", "review_summary", "enum_extensions", "deleted_from_precedent",
     "considered_and_rejected", "top_level_additional_properties",
+    "threshold", "register", "attach",
 }
 
 # Where each closed enum lives in the schema. Only pointer_type is in $defs;
@@ -94,6 +96,8 @@ SCHEMA_ENUM_PATHS = {
     "metric_type":         ("$defs", "metric", "properties", "type", "enum"),
     "register_status_scope": ("properties", "register_status", "properties", "proposed_entries",
                               "items", "properties", "scope", "enum"),
+    "threshold_operator":  ("properties", "criteria", "items", "properties", "threshold",
+                            "properties", "operator", "enum"),
 }
 
 # Which Apex Set<String> constant answers for each enum. None means the Apex
@@ -116,6 +120,7 @@ APEX_ENUM_CONSTANTS = {
     "payload_scope":       "PAYLOAD_SCOPES",        # Apex enforces payload_scope directly
     "metric_type":         "E_METRIC_TYPE",
     "register_status_scope": None,                  # schema<->template only, by design
+    "threshold_operator":  "E_THRESHOLD_OPERATOR",
 }
 
 # Open-enum core sets: schema `examples` arrays <-> template core_enums <-> Apex CORE_*.
@@ -193,6 +198,19 @@ APEX_CODE_ASSERTIONS = [
     ("apex-open-enum-evidence-class",
      r"checkExtensible\([^;]*CORE_EVIDENCE_CLASS",
      "evidence_class is validated as core-or-declared-extension"),
+    # 0.14.0: between requires value_upper (enforced in code, not a constant).
+    ("apex-threshold-between-upper",
+     r"'between'\.equals\(",
+     "threshold operator between requires value_upper"),
+    # 0.14.0 attach: a target study's live handoff must equal the resolved
+    # supersede target or the ingest is rejected (explicit-supersedes-required).
+    ("apex-attach-live-handoff-guard",
+     r"liveHandoffId\s*!=\s*supersedesId",
+     "attach to a study with a live handoff requires provenance.supersedes to name it"),
+    # 0.14.0 register block read with the <=0.13 enum_extensions fallback.
+    ("apex-register-block-fallback",
+     r"LEGACY_METHOD_REGISTER_SLUG",
+     "register identity reads the 0.14 block with the enum_extensions fallback intact"),
 ]
 
 
@@ -654,6 +672,70 @@ def check_shapes(schema, contract, apex_text, rep):
             rep.check_eq_sets(code, "enum_extensions allowed keys", "schema properties", allowed,
                               "template shapes.enum_extensions.allowed_keys",
                               tshape.get("allowed_keys") or [])
+
+    # -- threshold (0.14.0): optional per-criterion object with a between conditional
+    code = "shape-threshold"
+    th = dig(schema, ("properties", "criteria", "items", "properties", "threshold"),
+             "schema", rep, code)
+    if th is not None:
+        th_req = th.get("required") or []
+        th_opt = sorted(set((th.get("properties") or {}).keys()) - set(th_req))
+        crit_required = dig(schema, ("properties", "criteria", "items", "required"), "schema", rep, code) or []
+        if "threshold" in crit_required:
+            rep.fail(code, "schema now REQUIRES criteria.threshold — absence is the honest "
+                           "signal for criteria with no numeric cutoff; it must stay optional.")
+        elif th.get("additionalProperties") is not False:
+            rep.fail(code, "schema threshold.additionalProperties must be false.")
+        elif (th.get("then") or {}).get("required") is None or "value_upper" not in (th.get("then") or {}).get("required", []):
+            rep.fail(code, "schema threshold lost its between-requires-value_upper conditional.")
+        else:
+            rep.ok(code, "schema threshold is optional, strict, and between requires value_upper")
+        if contract is not None:
+            tshape = (contract.get("shapes") or {}).get("threshold") or {}
+            rep.check_eq_exact(code, "threshold shape", "expected", "object_or_omit",
+                               "template shapes.threshold.type", tshape.get("type"))
+            rep.check_eq_sets(code, "threshold required keys", "schema", th_req,
+                              "template shapes.threshold.item_required", tshape.get("item_required") or [])
+            rep.check_eq_sets(code, "threshold optional keys", "schema (properties minus required)", th_opt,
+                              "template shapes.threshold.item_optional", tshape.get("item_optional") or [])
+
+    # -- register (0.14.0): optional first-class identity block
+    code = "shape-register"
+    regblk = dig(schema, ("properties", "register"), "schema", rep, code)
+    if regblk is not None:
+        top_required = schema.get("required") or []
+        if "register" in top_required:
+            rep.fail(code, "schema now REQUIRES the register block — 0.11-0.13 payloads carry "
+                           "identity in enum_extensions and Apex enforces at-least-one-source; "
+                           "requiring it here would fail every older payload at the schema.")
+        elif regblk.get("additionalProperties") is not False:
+            rep.fail(code, "schema register.additionalProperties must be false.")
+        else:
+            rep.ok(code, "schema register block is optional and strict")
+        if contract is not None:
+            tshape = (contract.get("shapes") or {}).get("register") or {}
+            rep.check_eq_exact(code, "register shape", "expected", "object_or_omit",
+                               "template shapes.register.type", tshape.get("type"))
+            rep.check_eq_sets(code, "register required keys", "schema", regblk.get("required") or [],
+                              "template shapes.register.required", tshape.get("required") or [])
+
+    # -- attach (0.14.0): optional destination instruction
+    code = "shape-attach"
+    att = dig(schema, ("properties", "attach"), "schema", rep, code)
+    if att is not None:
+        top_required = schema.get("required") or []
+        if "attach" in top_required:
+            rep.fail(code, "schema now REQUIRES attach — create mode is the default and must stay so.")
+        elif att.get("additionalProperties") is not False:
+            rep.fail(code, "schema attach.additionalProperties must be false.")
+        else:
+            rep.ok(code, "schema attach block is optional and strict")
+        if contract is not None:
+            tshape = (contract.get("shapes") or {}).get("attach") or {}
+            rep.check_eq_exact(code, "attach shape", "expected", "object_or_omit",
+                               "template shapes.attach.type", tshape.get("type"))
+            rep.check_eq_sets(code, "attach required keys", "schema", att.get("required") or [],
+                              "template shapes.attach.required", tshape.get("required") or [])
 
     # -- deleted_from_precedent item keys
     code = "shape-deleted-from-precedent"
