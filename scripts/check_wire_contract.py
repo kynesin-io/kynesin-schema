@@ -247,6 +247,9 @@ VALIDATION_RULE_ASSERTIONS = [
     ("vr-between-upper", "Criterion__c", "Between_needs_upper_bound",
      ["Threshold_Operator__c", "between", "Threshold_Value_Upper__c"],
      "threshold operator 'between' iff Threshold_Value_Upper__c populated"),
+    ("vr-neither-detail", "Criterion__c", "Neither_needs_detail",
+     ["Criterion_Type__c", "neither", "Non_Criterion_Detail__c"],
+     "criterion_type=neither requires a stored non-criterion detail"),
 ]
 
 # Which DML validation-rule assertion answers for each criteria-level schema
@@ -262,11 +265,10 @@ VALIDATION_RULE_ASSERTIONS = [
 SCHEMA_CONDITIONAL_COVERAGE = {
     "grounded": ("vr-ungrounded-gap", None),
     "origin":   ("vr-model-derived-review-focus", None),
-    "criterion_type": (None,
-        "criterion_type=neither requires deleted_from_precedent or "
-        "considered_and_rejected; both land in the serialised long-text "
-        "Non_Criterion_Detail__c, and the conditional is enforced at ingest "
-        "only (apex-neither-detail-check) — no DML rule exists today."),
+    # Both anyOf branches (deleted_from_precedent / considered_and_rejected)
+    # land serialised in the one long-text Non_Criterion_Detail__c, so a
+    # single blank-check on that field covers the schema's disjunction.
+    "criterion_type": ("vr-neither-detail", None),
 }
 
 
