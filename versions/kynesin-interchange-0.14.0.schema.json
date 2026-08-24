@@ -749,7 +749,7 @@
           },
           "threshold": {
             "type": "object",
-            "description": "Optional structured cutoff for criteria that carry a real numeric threshold. Emit it only when the rule genuinely has one - absence is the honest signal, and thresholds are never parsed out of criterion_text prose. operator 'between' requires value_upper.",
+            "description": "Optional structured cutoff for criteria that carry a real numeric threshold. Emit it only when the rule genuinely has one - absence is the honest signal, and thresholds are never parsed out of criterion_text prose. operator 'between' requires value_upper, and value_upper is prohibited with any other operator - an upper bound beside a one-sided comparison is not a range.",
             "required": [
               "value",
               "operator"
@@ -788,7 +788,10 @@
                 "operator": {
                   "const": "between"
                 }
-              }
+              },
+              "required": [
+                "operator"
+              ]
             },
             "then": {
               "required": [
@@ -796,6 +799,13 @@
                 "operator",
                 "value_upper"
               ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "value_upper"
+                ]
+              }
             }
           }
         },
