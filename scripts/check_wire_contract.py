@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Wire-contract drift check: JSON Schema <-> skill-template contract block <-> Apex validator.
+"""Wire-contract drift check: JSON Schema <-> skill-template contract block <-> Apex validator
+<-> DML validation rules.
 
-Three artifacts declare the Kynesin interchange contract independently:
+Four layers declare or enforce the Kynesin interchange contract independently:
 
   1. the JSON Schema        (kynesin-schema repo, versions/kynesin-interchange-X.Y.Z.schema.json)
   2. the skill template     (kynesin-skill/template/SKILL.md, machine-readable
                              contract block under the <!-- kynesin-payload-contract --> marker)
   3. the Apex validator     (force-app/main/default/classes/KynesinIngestion.cls constants)
+  4. the validation rules   (force-app/main/default/objects/*/validationRules/
+                             *.validationRule-meta.xml — Criterion__c rules that
+                             duplicate contract conditionals at the DML layer)
 
 Eleven wire-format drifts accumulated across these with nothing comparing them,
 and a live run silently lost its provenance graph. This script makes ANY future
@@ -16,7 +20,14 @@ enforces (origin, basis_class, payload_scope, metric.type) and the
 register_status proposed-entry scope, which is checked schema<->template only
 because Apex deliberately ignores that block — both open-enum core sets,
 supported versions, and the structural shapes, three ways, and exits nonzero
-listing EVERY mismatch (it never stops at the first). Schema enums outside the
+listing EVERY mismatch (it never stops at the first). The DML layer is checked
+too (Claude Science's staging verification, item 5, proved the gap: a payload
+passed all three compared layers and would still have died at insert on a
+validation rule): each contract-coupled Criterion__c validation rule must
+exist, be active, and still reference the fields its conditional couples, and
+every criteria-level schema conditional must map to a rule assertion or be
+recorded as deliberately uncovered — so a new schema conditional with no DML
+twin is flagged here, not at the first insert. Schema enums outside the
 contract block (identifier namespace/level/status, decided_by, chain_role,
 destination, prerequisites.blocks, indication.design, origin_detail values) are
 deliberately untracked: the template contract block does not carry them, and
@@ -41,6 +52,7 @@ import json
 import os
 import re
 import sys
+import xml.etree.ElementTree as ET
 
 # Defaults are resolved relative to the repo this script lives in (its parent
 # directory), so the check works from any cwd, in CI, and in the synced copy
@@ -49,6 +61,7 @@ import sys
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_TEMPLATE = os.path.join(_REPO_ROOT, "kynesin-skill", "template", "SKILL.md")
 DEFAULT_APEX = os.path.join(_REPO_ROOT, "force-app", "main", "default", "classes", "KynesinIngestion.cls")
+DEFAULT_OBJECTS = os.path.join(_REPO_ROOT, "force-app", "main", "default", "objects")
 
 SCHEMA_CLONE_HELP = (
     "No schema provided. The schema lives in the public repo "
@@ -212,6 +225,49 @@ APEX_CODE_ASSERTIONS = [
      r"LEGACY_METHOD_REGISTER_SLUG",
      "register identity reads the 0.14 block with the enum_extensions fallback intact"),
 ]
+
+# Validation-rule assertions (check g). These Criterion__c validation rules
+# duplicate contract conditionals at the DML layer — the layer none of the
+# three compared artifacts can see. Claude Science's staging verification
+# (VERIFICATION_AND_STAGING, item 5) proved the gap: a payload passed schema,
+# template and Apex and would still have died at insert on the first two rules
+# below. So a deleted or deactivated rule is contract drift exactly like a
+# dropped enum value. Each entry: (check code, object directory, rule
+# fullName, tokens the errorConditionFormula must still contain, what the
+# rule enforces). Token presence detects deletion and decoupling, not
+# semantic equivalence — the formula's actual behaviour is proven at DML
+# (staging dry-runs), not by this parse.
+VALIDATION_RULE_ASSERTIONS = [
+    ("vr-ungrounded-gap", "Criterion__c", "Ungrounded_needs_gap",
+     ["Grounded__c", "Gap_Description__c"],
+     "grounded=false requires gap_description"),
+    ("vr-model-derived-review-focus", "Criterion__c", "Model_derived_needs_review_focus",
+     ["Origin__c", "model_derived", "Review_Focus__c"],
+     "origin containing model_derived requires review_focus"),
+    ("vr-between-upper", "Criterion__c", "Between_needs_upper_bound",
+     ["Threshold_Operator__c", "between", "Threshold_Value_Upper__c"],
+     "threshold operator 'between' iff Threshold_Value_Upper__c populated"),
+]
+
+# Which DML validation-rule assertion answers for each criteria-level schema
+# conditional (the allOf if/then list on criteria items), keyed by the
+# conditional's if-trigger property. None means the conditional is
+# DELIBERATELY uncovered at the DML layer, with the reason printed — the
+# absence is explicit rather than silent. A NEW schema conditional must land
+# here in the same change: either with a matching validation rule plus a
+# VALIDATION_RULE_ASSERTIONS entry, or as a None with its reason. The
+# threshold between-conditional lives inside the threshold object, not this
+# allOf; its layers are shape-threshold (schema), apex-threshold-between-upper
+# (Apex) and vr-between-upper (DML).
+SCHEMA_CONDITIONAL_COVERAGE = {
+    "grounded": ("vr-ungrounded-gap", None),
+    "origin":   ("vr-model-derived-review-focus", None),
+    "criterion_type": (None,
+        "criterion_type=neither requires deleted_from_precedent or "
+        "considered_and_rejected; both land in the serialised long-text "
+        "Non_Criterion_Detail__c, and the conditional is enforced at ingest "
+        "only (apex-neither-detail-check) — no DML rule exists today."),
+}
 
 
 class Report:
@@ -805,6 +861,133 @@ def check_shapes(schema, contract, apex_text, rep):
                      f"enforcement is removed.")
 
 
+# ------------------------------------------------------- validation-rule side
+
+def resolve_objects_dir(arg_objects, apex_path, rep):
+    """Locate force-app/main/default/objects. Order: explicit --objects, the
+    repo this script lives in, then the checkout the Apex file came from (the
+    synced copy in kynesin-schema runs with only --apex pointing at a
+    kynesin-sfdx clone, and the rules live beside that Apex). The rules are a
+    contract layer like the other three, so if the directory cannot be found
+    the check FAILS rather than silently skipping."""
+    candidates = []
+    if arg_objects:
+        candidates.append(os.path.abspath(arg_objects))
+    else:
+        candidates.append(DEFAULT_OBJECTS)
+        if apex_path:
+            candidates.append(os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(apex_path))), "objects"))
+    for c in candidates:
+        if os.path.isdir(c):
+            return c
+    rep.fail("vr-objects-path",
+             "force-app objects directory not found (tried: "
+             + ", ".join(candidates) + ") — the validation-rule layer of the "
+             "contract cannot be checked. Pass --objects pointing at a "
+             "kynesin-sfdx checkout's force-app/main/default/objects.")
+    return None
+
+
+def check_validation_rules(objects_dir, rep):
+    """Check (g): the DML validation-rule layer. For each contract-coupled
+    rule: the metadata file must exist, be active, and its
+    errorConditionFormula must still reference every field/value the contract
+    couples — so deleting a rule, flipping <active>, or rewriting the formula
+    away from its fields all fail here instead of surfacing as a surprise
+    DML rejection (or, worse, a silently-missing rejection)."""
+    for code, obj, rule, tokens, meaning in VALIDATION_RULE_ASSERTIONS:
+        path = os.path.join(objects_dir, obj, "validationRules",
+                            rule + ".validationRule-meta.xml")
+        if not os.path.isfile(path):
+            rep.fail(code,
+                     f"validation rule {obj}.{rule} NOT FOUND at {path} — the DML-layer "
+                     f"enforcement of '{meaning}' is gone. Restore the rule or, if it was "
+                     f"deliberately retired, remove the schema/Apex conditional it mirrors "
+                     f"and this assertion IN THE SAME CHANGE.")
+            continue
+        try:
+            root = ET.parse(path).getroot()
+        except ET.ParseError as e:
+            rep.fail(code, f"validation rule file {path} is not parseable XML: {e}")
+            continue
+        fields = {child.tag.rsplit('}', 1)[-1]: (child.text or "") for child in root}
+        if fields.get("active", "").strip() != "true":
+            rep.fail(code,
+                     f"validation rule {obj}.{rule} is present but NOT ACTIVE "
+                     f"(active={fields.get('active', 'MISSING')!r}) — deactivation is the "
+                     f"quiet way to defang '{meaning}'; reactivate it or retire the "
+                     f"contract conditional it mirrors.")
+            continue
+        formula = fields.get("errorConditionFormula", "")
+        if not formula.strip():
+            rep.fail(code, f"validation rule {obj}.{rule} has an empty or missing "
+                           f"errorConditionFormula — active but enforcing nothing.")
+            continue
+        missing = [t for t in tokens if t not in formula]
+        if missing:
+            rep.fail(code,
+                     f"validation rule {obj}.{rule} no longer references {missing} in its "
+                     f"errorConditionFormula — the contract couples {tokens} "
+                     f"for '{meaning}'.\n"
+                     f"      formula: {' '.join(formula.split())}")
+            continue
+        rep.ok(code, f"validation rule {obj}.{rule} exists, is active, and references "
+                     f"{tokens} ({meaning})")
+
+
+def check_schema_conditional_coverage(schema, rep):
+    """Check (h): every criteria-level conditional the schema declares must be
+    accounted for at the DML layer — mapped to a validation-rule assertion or
+    explicitly recorded as deliberately uncovered. A new schema conditional
+    whose trigger is in neither list fails here: that is exactly the drift
+    Claude Science flagged, a constraint added to schema and Apex with no DML
+    twin, invisible to the three compared artifacts until the first insert."""
+    code = "vr-conditional-coverage"
+    allof = dig(schema, ("properties", "criteria", "items", "allOf"), "schema", rep, code)
+    if allof is None:
+        return
+    declared = []
+    for i, cond in enumerate(allof):
+        if not isinstance(cond, dict) or not isinstance(cond.get("if"), dict):
+            rep.fail(code, f"schema criteria allOf[{i}] is not an if/then conditional — "
+                           f"this coverage check no longer understands the schema's shape; "
+                           f"update it in the same change as the schema.")
+            continue
+        declared.append("+".join(sorted((cond["if"].get("properties") or {}).keys())))
+    known_vr_codes = {c for c, _obj, _rule, _tokens, _meaning in VALIDATION_RULE_ASSERTIONS}
+    for trigger in declared:
+        if trigger not in SCHEMA_CONDITIONAL_COVERAGE:
+            rep.fail(code,
+                     f"schema declares a criteria conditional triggered by {trigger!r} that "
+                     f"the DML coverage map does not know — a payload could pass every other "
+                     f"layer and hit (or silently miss) DML enforcement nobody asserted. Add "
+                     f"the matching validation rule plus a VALIDATION_RULE_ASSERTIONS entry, "
+                     f"or record it in SCHEMA_CONDITIONAL_COVERAGE as deliberately uncovered "
+                     f"with the reason, in the same change.")
+            continue
+        vr_code, reason = SCHEMA_CONDITIONAL_COVERAGE[trigger]
+        if vr_code is None:
+            rep.ok(code, f"schema conditional on {trigger!r} accounted for: deliberately "
+                         f"uncovered at DML — {reason}")
+        elif vr_code not in known_vr_codes:
+            rep.fail(code,
+                     f"coverage map sends the {trigger!r} conditional to {vr_code!r}, but no "
+                     f"VALIDATION_RULE_ASSERTIONS entry carries that code — the map points at "
+                     f"an assertion that does not exist.")
+        else:
+            rep.ok(code, f"schema conditional on {trigger!r} is covered by validation-rule "
+                         f"assertion {vr_code}")
+    declared_set = set(declared)
+    for trigger, (vr_code, _reason) in sorted(SCHEMA_CONDITIONAL_COVERAGE.items()):
+        if trigger not in declared_set:
+            rep.fail(code,
+                     f"coverage map lists a criteria conditional on {trigger!r} but the "
+                     f"schema no longer declares one — the schema half of the couple "
+                     f"vanished. Remove the map entry (and retire its rule) or restore the "
+                     f"conditional, in the same change.")
+
+
 # ----------------------------------------------------------------------- main
 
 def main(argv=None):
@@ -818,6 +1001,10 @@ def main(argv=None):
                     help="Path to kynesin-skill/template/SKILL.md (absent => loud skip).")
     ap.add_argument("--apex", default=DEFAULT_APEX,
                     help="Path to KynesinIngestion.cls.")
+    ap.add_argument("--objects", default=None,
+                    help="Path to force-app/main/default/objects (validation-rule layer). "
+                         "Default: this repo's copy, else derived from --apex; if neither "
+                         "exists the validation-rule checks FAIL rather than skip.")
     args = ap.parse_args(argv)
 
     rep = Report()
@@ -856,6 +1043,10 @@ def main(argv=None):
         check_core_enums(schema, contract, consts, rep)
         check_versions(schema, contract, consts, schema_file, rep)
         check_shapes(schema, contract, apex_text, rep)
+        objects_dir = resolve_objects_dir(args.objects, args.apex, rep)
+        if objects_dir is not None:
+            check_validation_rules(objects_dir, rep)
+        check_schema_conditional_coverage(schema, rep)
 
     # ---- report
     print()
