@@ -224,6 +224,14 @@ APEX_CODE_ASSERTIONS = [
     ("apex-register-block-fallback",
      r"LEGACY_METHOD_REGISTER_SLUG",
      "register identity reads the 0.14 block with the enum_extensions fallback intact"),
+    # Detects a change to the decision-pointer FORM check. Template v2.6 states
+    # ^[DM]\d{3} as its own citation convention with the server as membership
+    # authority; that division only holds while the server's form check stays
+    # ^D\d+$ / ^M\d+$ on the uppercased value. If this fires, re-read the
+    # template's pointer-form rule before fixing either side.
+    ("apex-decision-ref-regex",
+     r"Pattern\.matches\('\^D\\\\d\+\$',\s*upper\).*\n.*Pattern\.matches\('\^M\\\\d\+\$',\s*upper\)",
+     "decision-pointer form check is ^D\\d+$ / ^M\\d+$ on the uppercased value"),
 ]
 
 # Validation-rule assertions (check g). These Criterion__c validation rules
