@@ -298,6 +298,14 @@ APEX_CODE_ASSERTIONS = [
     ("apex-version-gate-is-a-floor",
      r"Boolean\s+isV14\s*=\s*atLeast\(\s*ver\s*,\s*V14\s*\)",
      "the 0.14 block gate is a version FLOOR, not an equality"),
+    # The boundary gate's consumer. population.boundary_decisions has been legal
+    # on the wire since 0.14.0 and was read by NOTHING — template v2.6 gates
+    # derivation on count(decided_by == 'agent_unilateral') == 0 and that gate
+    # lived entirely in skill prose. CLAUDE.md's lesson from the same run: an
+    # accurate field with no consumer is not a control.
+    ("apex-boundary-gate-consumer",
+     r"'agent_unilateral'\.equals\(\s*str\(\s*bd\.get\(\s*'decided_by'\s*\)\s*\)\s*\)",
+     "agent_unilateral boundary decisions are counted and surfaced"),
 ]
 
 # Enforcement that lives in a class OTHER than KynesinIngestion. APEX_CODE_ASSERTIONS
