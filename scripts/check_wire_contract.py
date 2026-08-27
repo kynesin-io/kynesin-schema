@@ -48,6 +48,7 @@ stdlib only; python3.8+.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -232,6 +233,41 @@ APEX_CODE_ASSERTIONS = [
     ("apex-decision-ref-regex",
      r"Pattern\.matches\('\^D\\\\d\+\$',\s*upper\).*\n.*Pattern\.matches\('\^M\\\\d\+\$',\s*upper\)",
      "decision-pointer form check is ^D\\d+$ / ^M\\d+$ on the uppercased value"),
+    # The "nothing auto-approves" non-negotiable, enforced at last. Every layer
+    # asserted it and none enforced it: the schema types human_confirmed as a
+    # plain boolean (so false validates), the skill only ever shows true, and
+    # the Apex coerced the value onto the record and wrote the handoff anyway.
+    # If this fires, a payload no human reviewed can reach the system of record.
+    ("apex-human-confirmed-true",
+     r"hcRaw\s+instanceof\s+Boolean\s*&&\s*!\(\(Boolean\)\s*hcRaw\)",
+     "provenance.human_confirmed=false is rejected, never coerced"),
+    # generated_at must parse. parseDateTime() returns null on garbage, so an
+    # unparseable timestamp used to ingest clean and store a null provenance
+    # date. The schema's format:date-time is annotation-only and catches nothing.
+    ("apex-generated-at-parseable",
+     r"parseDateTime\(genAt\)\s*==\s*null",
+     "provenance.generated_at must parse as a date-time, not silently null"),
+    # An empty criteria[] must not ingest. It reported success, created a
+    # childless handoff, and could supersede a good one — supersession is
+    # decided from session and register, never from content.
+    ("apex-criteria-non-empty",
+     r"p\.get\('criteria'\)\s*!=\s*null\s*&&\s*criteria\.isEmpty\(\)",
+     "criteria[] must carry at least one criterion"),
+    # The cross-programme supersede guard. session_id identifies a session that
+    # RAN, not a programme, and one relay can derive two — on 2026-08-25 a
+    # single session produced crohns-il23p19 and lpa-ascvd under one session_id
+    # and would have retired the crohns handoff silently. If this fires, a
+    # second programme derived in one session can destroy the first's handoff.
+    ("apex-cross-programme-supersede-guard",
+     r"!supersedeWasExplicit\s*&&\s*sessionDerivedPrior\s*!=\s*null",
+     "supersede across programmes is rejected unless explicitly named"),
+    # The PHI screen must cover every free string that PERSISTS. Pointer
+    # locator/data_cut and threshold.unit were stored verbatim but unscreened,
+    # against this class's own stated rule. This is the enforcement point for
+    # the "No PHI reaches Claude Science" non-negotiable.
+    ("apex-phi-screen-pointers",
+     r"phiScreenPointers\(\s*arr\(c\.get\('derivation_refs'\)\)",
+     "pointer free strings (value/locator/data_cut) are PHI-screened"),
 ]
 
 # Validation-rule assertions (check g). These Criterion__c validation rules
@@ -998,6 +1034,45 @@ def check_schema_conditional_coverage(schema, rep):
                      f"conditional, in the same change.")
 
 
+
+def check_checker_twin(schema_arg, rep):
+    """The checker keeps a copy in the schema repo so that repo's CI is
+    self-contained. Until now the two were held in step by a comment saying
+    "keep the two in sync" — which is exactly the arrangement this whole script
+    exists to prove does not work. A contract maintained by convention across
+    two locations drifts; that is the thesis. This is the script applying it to
+    itself.
+
+    Only meaningful when --schema points at a clone (a bare .schema.json file
+    has no scripts/ beside it), and only when the twin exists — a schema-only
+    contributor who deleted their copy is not committing drift.
+    """
+    if not schema_arg or not os.path.isdir(schema_arg):
+        return
+    twin = os.path.join(schema_arg, "scripts", "check_wire_contract.py")
+    if not os.path.isfile(twin):
+        rep.note(f"checker twin not present at {twin} — nothing to compare.")
+        return
+    mine = os.path.abspath(__file__)
+    if os.path.abspath(twin) == mine:
+        return  # running the schema repo's own copy against itself
+    def digest(path):
+        with open(path, "rb") as fh:
+            return hashlib.sha256(fh.read()).hexdigest()
+    a, b = digest(mine), digest(twin)
+    if a == b:
+        rep.ok("checker-twin-sync",
+               f"checker copies are byte-identical (sha256 {a[:12]})")
+        return
+    rep.fail("checker-twin-sync",
+             f"the two copies of check_wire_contract.py have DRIFTED.\n"
+             f"      this copy: {mine}\n        sha256 {a}\n"
+             f"      twin:      {twin}\n        sha256 {b}\n"
+             f"      Copy the newer over the older. The schema repo's CI runs its own\n"
+             f"      copy, so a drifted twin means the two repos are enforcing\n"
+             f"      different contracts while both report OK.")
+
+
 # ----------------------------------------------------------------------- main
 
 def main(argv=None):
@@ -1057,6 +1132,8 @@ def main(argv=None):
         if objects_dir is not None:
             check_validation_rules(objects_dir, rep)
         check_schema_conditional_coverage(schema, rep)
+
+    check_checker_twin(args.schema, rep)
 
     # ---- report
     print()
