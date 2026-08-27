@@ -306,6 +306,14 @@ APEX_CODE_ASSERTIONS = [
     ("apex-boundary-gate-consumer",
      r"'agent_unilateral'\.equals\(\s*str\(\s*bd\.get\(\s*'decided_by'\s*\)\s*\)\s*\)",
      "agent_unilateral boundary decisions are counted and surfaced"),
+    # The supersede lookup's tiebreak. CreatedDate has second resolution, so
+    # handoffs pushed within one second tie and SOQL leaves ties undefined —
+    # "the most recent prior handoff" then resolves arbitrarily and the payload
+    # supersedes whichever sorted first. Found as a test that passed 18/18 and
+    # 17/18 on identical code.
+    ("apex-supersede-order-tiebreak",
+     r"ORDER BY CreatedDate DESC, Id DESC",
+     "the supersede lookup breaks CreatedDate ties deterministically on Id"),
 ]
 
 # Enforcement that lives in a class OTHER than KynesinIngestion. APEX_CODE_ASSERTIONS
@@ -320,8 +328,8 @@ SIBLING_CODE_ASSERTIONS = [
     # them, so the reader had to.
     ("apex-correction-staleness-disclosure",
      "KynesinGetCriterionProvenance.cls",
-     r"correctionsAfterIngest\+\+",
-     "a correction post-dating the criterion is disclosed as possible staleness"),
+     r"'same_day'\.equals\(rel\)",
+     "correction-vs-criterion ordering is THREE-valued; same_day is not silence"),
     # The review action must write in SYSTEM mode. Kynesin_Reviewer deliberately
     # withholds edit on Review_Status__c and the two audit fields so a reviewer
     # cannot forge WHO reviewed; the invocable runs AS the reviewer, so without
