@@ -114,7 +114,7 @@ jobs:
                       loc = "/".join(map(str, e.path)) or "(top level)"
                       print(f"        {loc}: {e.message[:200]}")
               else:
-                  print(f"PASS  {f}: valid against {newest}")
+                  print(f"PASS  {f}: valid against {schema_file}")
           sys.exit(1 if failures else 0)
           EOF
 
@@ -134,21 +134,67 @@ jobs:
           else
             echo "present=false" >> "$GITHUB_OUTPUT"
             echo "=============================================================================="
-            echo "NOTICE: KYNESIN_SFDX_TOKEN secret is not configured."
-            echo "The schema<->Apex drift comparison against the private kynesin-io/kynesin-sfdx"
-            echo "repo is SKIPPED this run. It still runs in kynesin-sfdx CI and in the local"
-            echo "pre-commit hook, so drift is not unguarded — but configure the secret (a"
-            echo "read-only token for kynesin-io/kynesin-sfdx) to close the loop from this side."
+            echo "KYNESIN_SFDX_TOKEN secret is not configured."
+            echo "This job compares the schema against the Apex validator AND against the"
+            echo "skill template's contract block. The template lives only in the private"
+            echo "kynesin-sfdx checkout, so without this secret that comparison runs NOWHERE"
+            echo "in CI — kynesin-sfdx CI cannot see the template either (it is gitignored"
+            echo "there), leaving it guarded only by a local pre-commit hook that"
+            echo "'git commit -n' bypasses."
+            echo ""
+            echo "Fix: add a read-only token for kynesin-io/kynesin-sfdx as the repository"
+            echo "secret KYNESIN_SFDX_TOKEN."
             echo "=============================================================================="
+            # On the default branch this is a FAILURE, not a notice. The whole
+            # premise of this repo's tooling is that a drift check which
+            # silently skips is worthless — the pre-commit hook already blocks
+            # a commit rather than passing blind when the schema clone is
+            # missing, and this is the same situation seen from the other side.
+            # Pull requests (including fork PRs, which cannot read secrets at
+            # all) still skip without failing.
+            if [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF" = "refs/heads/main" ]; then
+              echo "::error::Template<->schema drift is unguarded on main. Configure KYNESIN_SFDX_TOKEN."
+              exit 1
+            fi
           fi
 
-      - name: Checkout kynesin-sfdx (private, token-gated)
+      # Prefer a kynesin-sfdx branch of the SAME NAME, falling back to its
+      # default branch. A contract change lands in both repos at once, so on a
+      # feature branch the meaningful comparison is branch-to-branch; comparing
+      # a branch against the other repo's main reports drift that is really just
+      # the two repos being at different refs mid-flight. The first paired push
+      # failed here with 12 "Apex enforcement NOT FOUND" lines that were nothing
+      # of the kind — the enforcement existed, on the branch this job did not
+      # check out.
+      - name: Checkout kynesin-sfdx (matching branch, if it exists)
+        id: sfdx_branch
         if: steps.token.outputs.present == 'true'
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          repository: kynesin-io/kynesin-sfdx
+          token: ${{ secrets.KYNESIN_SFDX_TOKEN }}
+          ref: ${{ github.head_ref || github.ref_name }}
+          path: kynesin-sfdx-clone
+
+      - name: Checkout kynesin-sfdx (default branch)
+        if: steps.token.outputs.present == 'true' && steps.sfdx_branch.outcome == 'failure'
         uses: actions/checkout@v4
         with:
           repository: kynesin-io/kynesin-sfdx
           token: ${{ secrets.KYNESIN_SFDX_TOKEN }}
           path: kynesin-sfdx-clone
+
+      # Say which side was compared. A green run means nothing if the reader
+      # cannot tell whether it compared branch-to-branch or branch-to-main.
+      - name: Report which kynesin-sfdx ref was compared
+        if: steps.token.outputs.present == 'true'
+        run: |
+          cd kynesin-sfdx-clone
+          echo "kynesin-sfdx ref compared: $(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo detached) @ $(git rev-parse --short HEAD)"
+          if [ "${{ steps.sfdx_branch.outcome }}" != "success" ]; then
+            echo "NOTE: no kynesin-sfdx branch named '${{ github.head_ref || github.ref_name }}'; compared against its default branch."
+          fi
 
       - name: Set up Python
         if: steps.token.outputs.present == 'true'

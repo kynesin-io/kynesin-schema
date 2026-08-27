@@ -48,6 +48,7 @@ stdlib only; python3.8+.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -224,7 +225,106 @@ APEX_CODE_ASSERTIONS = [
     ("apex-register-block-fallback",
      r"LEGACY_METHOD_REGISTER_SLUG",
      "register identity reads the 0.14 block with the enum_extensions fallback intact"),
+    # Detects a change to the decision-pointer FORM check. Template v2.6 states
+    # ^[DM]\d{3} as its own citation convention with the server as membership
+    # authority; that division only holds while the server's form check stays
+    # ^D\d+$ / ^M\d+$ on the uppercased value. If this fires, re-read the
+    # template's pointer-form rule before fixing either side.
+    ("apex-decision-ref-regex",
+     r"Pattern\.matches\('\^D\\\\d\+\$',\s*upper\).*\n.*Pattern\.matches\('\^M\\\\d\+\$',\s*upper\)",
+     "decision-pointer form check is ^D\\d+$ / ^M\\d+$ on the uppercased value"),
+    # The "nothing auto-approves" non-negotiable, enforced at last. Every layer
+    # asserted it and none enforced it: the schema types human_confirmed as a
+    # plain boolean (so false validates), the skill only ever shows true, and
+    # the Apex coerced the value onto the record and wrote the handoff anyway.
+    # If this fires, a payload no human reviewed can reach the system of record.
+    ("apex-human-confirmed-true",
+     r"hcRaw\s+instanceof\s+Boolean\s*&&\s*!\(\(Boolean\)\s*hcRaw\)",
+     "provenance.human_confirmed=false is rejected, never coerced"),
+    # generated_at must parse. parseDateTime() returns null on garbage, so an
+    # unparseable timestamp used to ingest clean and store a null provenance
+    # date. The schema's format:date-time is annotation-only and catches nothing.
+    ("apex-generated-at-parseable",
+     r"parseDateTime\(genAt\)\s*==\s*null",
+     "provenance.generated_at must parse as a date-time, not silently null"),
+    # An empty criteria[] must not ingest. It reported success, created a
+    # childless handoff, and could supersede a good one — supersession is
+    # decided from session and register, never from content.
+    ("apex-criteria-non-empty",
+     r"p\.get\('criteria'\)\s*!=\s*null\s*&&\s*criteria\.isEmpty\(\)",
+     "criteria[] must carry at least one criterion"),
+    # The cross-programme supersede guard. session_id identifies a session that
+    # RAN, not a programme, and one relay can derive two — on 2026-08-25 a
+    # single session produced crohns-il23p19 and lpa-ascvd under one session_id
+    # and would have retired the crohns handoff silently. If this fires, a
+    # second programme derived in one session can destroy the first's handoff.
+    ("apex-cross-programme-supersede-guard",
+     r"!supersedeWasExplicit\s*&&\s*sessionDerivedPrior\s*!=\s*null",
+     "supersede across programmes is rejected unless explicitly named"),
+    # The PHI screen must cover every free string that PERSISTS. Pointer
+    # locator/data_cut and threshold.unit were stored verbatim but unscreened,
+    # against this class's own stated rule. This is the enforcement point for
+    # the "No PHI reaches Claude Science" non-negotiable.
+    ("apex-phi-screen-pointers",
+     r"phiScreenPointers\(\s*arr\(c\.get\('derivation_refs'\)\)",
+     "pointer free strings (value/locator/data_cut) are PHI-screened"),
+    # 0.14 attach: every ResearchStudyProtocolInfo block names the handoff that
+    # wrote it. Re-attaching used to duplicate synopsis blocks with nothing on
+    # the record saying which handoff produced which.
+    ("apex-protocolinfo-attribution-sentinel",
+     r"String\s+sentinel\s*=\s*IEC_SENTINEL_PREFIX\s*\+\s*hid",
+     "every ResearchStudyProtocolInfo block names the handoff that wrote it"),
+    # criteria[].destination was persisted with no enum check at all, so a
+    # value outside the closed schema set reached the record.
+    ("apex-destination-enum-check",
+     r"checkEnum\(\s*c\.get\(\s*'destination'\s*\)\s*,\s*E_DESTINATION",
+     "criteria[].destination is validated against the closed schema enum"),
+    # session_id is capped so every key composed FROM it still fits its
+    # 255-char unique field — the cap is on the input, not on the composite,
+    # because a composite check would fail one stage too late.
+    ("apex-session-id-length-cap",
+     r"sid\.length\(\)\s*>\s*SESSION_ID_MAX",
+     "provenance.session_id is capped so every composed key fits its unique field"),
+    # The mirror of the unused-enum_extension warning: evidence nothing cites
+    # is surfaced rather than silently carried.
+    ("apex-uncited-evidence-warning",
+     r"citedEvidenceIds\.contains\(\s*uncited\s*\)",
+     "an evidence row no criterion cites is surfaced as a warning"),
+    # The 0.14 block gate must be a FLOOR. It was `V14.equals(ver)`, which
+    # rejected attach/register and silently skipped threshold on every version
+    # ABOVE 0.14.0 too — invisible while 0.14.0 was newest, and it would have
+    # fired on the first payload of the next version as three constructs
+    # quietly not doing their jobs.
+    ("apex-version-gate-is-a-floor",
+     r"Boolean\s+isV14\s*=\s*atLeast\(\s*ver\s*,\s*V14\s*\)",
+     "the 0.14 block gate is a version FLOOR, not an equality"),
 ]
+
+# Enforcement that lives in a class OTHER than KynesinIngestion. APEX_CODE_ASSERTIONS
+# scans only the --apex file, which is the ingestion validator; a tripwire written
+# against any other class silently never matched until this list existed. Each entry
+# is (check code, class file name, regex, what it enforces) and the file is resolved
+# relative to the same classes/ directory the --apex file sits in.
+SIBLING_CODE_ASSERTIONS = [
+    # A correction dated AFTER the criterion was received may have outdated the
+    # text above it. CLAUDE.md recorded this as "a presentation gap, not an
+    # action gap": both dates were already in the packet and nothing compared
+    # them, so the reader had to.
+    ("apex-correction-staleness-disclosure",
+     "KynesinGetCriterionProvenance.cls",
+     r"correctionsAfterIngest\+\+",
+     "a correction post-dating the criterion is disclosed as possible staleness"),
+    # The review action must write in SYSTEM mode. Kynesin_Reviewer deliberately
+    # withholds edit on Review_Status__c and the two audit fields so a reviewer
+    # cannot forge WHO reviewed; the invocable runs AS the reviewer, so without
+    # this the stamp it exists to apply is the one thing it cannot write, and
+    # every review fails. The lockdown and this line must move together.
+    ("apex-review-writes-in-system-mode",
+     "KynesinReview.cls",
+     r"AccessLevel\.SYSTEM_MODE",
+     "KynesinReview writes review outcomes in explicit system mode"),
+]
+
 
 # Validation-rule assertions (check g). These Criterion__c validation rules
 # duplicate contract conditionals at the DML layer — the layer none of the
@@ -610,7 +710,7 @@ def _schema_item_shape(schema, obj_path, rep, code, artifact="schema"):
     return required, optional
 
 
-def check_shapes(schema, contract, apex_text, rep):
+def check_shapes(schema, contract, apex_text, rep, apex_path=DEFAULT_APEX):
     """Check (e): shape spot-checks schema <-> template contract block, plus
     Apex code-assertion greps for rules enforced in code rather than data."""
 
@@ -862,6 +962,25 @@ def check_shapes(schema, contract, apex_text, rep):
                      f"this pattern IN THE SAME CHANGE and re-verify it still fails when the "
                      f"enforcement is removed.")
 
+    # -- sibling-class assertions: enforcement outside the ingestion validator
+    classes_dir = os.path.dirname(os.path.abspath(apex_path))
+    for code, filename, pattern, meaning in SIBLING_CODE_ASSERTIONS:
+        sibling = os.path.join(classes_dir, filename)
+        try:
+            with open(sibling, "r", encoding="utf-8") as fh:
+                text = fh.read()
+        except OSError as e:
+            rep.fail(code, f"cannot read {filename}: {e}")
+            continue
+        if re.search(pattern, text):
+            rep.ok(code, f"Apex enforcement present ({filename}): {meaning}")
+        else:
+            rep.fail(code,
+                     f"Apex enforcement NOT FOUND in {filename}: {meaning}.\n"
+                     f"      grep pattern: {pattern}\n"
+                     f"      Either the enforcement was deleted (a real contract break) or it "
+                     f"was refactored — if refactored, update this pattern IN THE SAME CHANGE "
+                     f"and re-verify it still fails when the enforcement is removed.")
 
 # ------------------------------------------------------- validation-rule side
 
@@ -990,6 +1109,45 @@ def check_schema_conditional_coverage(schema, rep):
                      f"conditional, in the same change.")
 
 
+
+def check_checker_twin(schema_arg, rep):
+    """The checker keeps a copy in the schema repo so that repo's CI is
+    self-contained. Until now the two were held in step by a comment saying
+    "keep the two in sync" — which is exactly the arrangement this whole script
+    exists to prove does not work. A contract maintained by convention across
+    two locations drifts; that is the thesis. This is the script applying it to
+    itself.
+
+    Only meaningful when --schema points at a clone (a bare .schema.json file
+    has no scripts/ beside it), and only when the twin exists — a schema-only
+    contributor who deleted their copy is not committing drift.
+    """
+    if not schema_arg or not os.path.isdir(schema_arg):
+        return
+    twin = os.path.join(schema_arg, "scripts", "check_wire_contract.py")
+    if not os.path.isfile(twin):
+        rep.note(f"checker twin not present at {twin} — nothing to compare.")
+        return
+    mine = os.path.abspath(__file__)
+    if os.path.abspath(twin) == mine:
+        return  # running the schema repo's own copy against itself
+    def digest(path):
+        with open(path, "rb") as fh:
+            return hashlib.sha256(fh.read()).hexdigest()
+    a, b = digest(mine), digest(twin)
+    if a == b:
+        rep.ok("checker-twin-sync",
+               f"checker copies are byte-identical (sha256 {a[:12]})")
+        return
+    rep.fail("checker-twin-sync",
+             f"the two copies of check_wire_contract.py have DRIFTED.\n"
+             f"      this copy: {mine}\n        sha256 {a}\n"
+             f"      twin:      {twin}\n        sha256 {b}\n"
+             f"      Copy the newer over the older. The schema repo's CI runs its own\n"
+             f"      copy, so a drifted twin means the two repos are enforcing\n"
+             f"      different contracts while both report OK.")
+
+
 # ----------------------------------------------------------------------- main
 
 def main(argv=None):
@@ -1044,11 +1202,13 @@ def main(argv=None):
         check_closed_enums(schema, contract, consts, rep)
         check_core_enums(schema, contract, consts, rep)
         check_versions(schema, contract, consts, schema_file, rep)
-        check_shapes(schema, contract, apex_text, rep)
+        check_shapes(schema, contract, apex_text, rep, args.apex)
         objects_dir = resolve_objects_dir(args.objects, args.apex, rep)
         if objects_dir is not None:
             check_validation_rules(objects_dir, rep)
         check_schema_conditional_coverage(schema, rep)
+
+    check_checker_twin(args.schema, rep)
 
     # ---- report
     print()
