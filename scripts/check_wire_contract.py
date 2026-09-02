@@ -322,6 +322,27 @@ APEX_CODE_ASSERTIONS = [
 # is (check code, class file name, regex, what it enforces) and the file is resolved
 # relative to the same classes/ directory the --apex file sits in.
 SIBLING_CODE_ASSERTIONS = [
+    # A caveat is a finding the decision SURVIVED — carried knowingly, not
+    # corrected. Without a durable home the disposition lives only in a session
+    # artifact, and the next derivation re-discovers the finding and may dispose
+    # it differently: four findings on ovarian-parp-hrd-mono@1.0 were in exactly
+    # that state on 2026-09-02. If the health action stops reporting them, the
+    # object still holds them and nothing reads them, which is the same failure
+    # with an extra table.
+    ("apex-caveat-disposition-surfaced",
+     "KynesinGetRegisterHealth.cls",
+     r"result\.put\(\s*'blocking_caveat_count'",
+     "disposed verification findings are surfaced, blocking ones counted"),
+    # Verified_Against__c names the SOURCE; Verified_By__c names the VERIFIER.
+    # All ten ovarian decisions carried the first and not the second — the
+    # identical string "step-3/V-09 verification pass 2026-08-13", a label for a
+    # step of the session that AUTHORED the register — and the action reported
+    # 10/10 verified, 0 errors while four discrepancies stood. A stamp applied by
+    # the authoring session is not verification and must not read as one.
+    ("apex-stamp-is-not-verification",
+     "KynesinGetRegisterHealth.cls",
+     r"result\.put\(\s*'stamped_without_verifier_count'",
+     "a verification stamp with no named verifier is reported, not counted as proof"),
     # A correction dated AFTER the criterion was received may have outdated the
     # text above it. CLAUDE.md recorded this as "a presentation gap, not an
     # action gap": both dates were already in the packet and nothing compared
