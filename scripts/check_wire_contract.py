@@ -303,6 +303,15 @@ APEX_CODE_ASSERTIONS = [
     # derivation on count(decided_by == 'agent_unilateral') == 0 and that gate
     # lived entirely in skill prose. CLAUDE.md's lesson from the same run: an
     # accurate field with no consumer is not a control.
+    # decided_by='open' arrived at 0.15.0 so a boundary RAISED and not yet
+    # decided could be represented at all. It must never be a way to PASS the
+    # gate by declining to decide, so it is counted with agent_unilateral into
+    # Unilateral_Boundary_Count__c — and warned SEPARATELY, because "never
+    # decided" and "decided by the agent" have different remedies and a reader
+    # must not be told a question was decided badly when it was not decided.
+    ("apex-open-boundary-not-a-pass",
+     r"boundaryUnilateral \+ boundaryOpen",
+     "decided_by=open counts as unowned, never as a pass"),
     ("apex-boundary-gate-consumer",
      r"'agent_unilateral'\.equals\(\s*str\(\s*bd\.get\(\s*'decided_by'\s*\)\s*\)\s*\)",
      "agent_unilateral boundary decisions are counted and surfaced"),
