@@ -1184,6 +1184,14 @@ def check_checker_twin(schema_arg, rep):
     has no scripts/ beside it), and only when the twin exists — a schema-only
     contributor who deleted their copy is not committing drift.
     """
+    # Resolve the SAME WAY resolve_schema_path does. This used to read the
+    # --schema argument only, so the check silently did not run whenever the
+    # path came from KYNESIN_SCHEMA_PATH — which the script's own --help calls
+    # the default. CI passes the flag and ran it; every env-var invocation
+    # skipped it, emitting nothing at all: not PASS, not FAIL, absent. Found by
+    # a check COUNT dropping between two runs, not by anything failing, which is
+    # the only way a silently-skipped guard ever announces itself.
+    schema_arg = schema_arg or os.environ.get("KYNESIN_SCHEMA_PATH")
     if not schema_arg or not os.path.isdir(schema_arg):
         return
     twin = os.path.join(schema_arg, "scripts", "check_wire_contract.py")
