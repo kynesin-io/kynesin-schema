@@ -303,6 +303,31 @@ APEX_CODE_ASSERTIONS = [
     # derivation on count(decided_by == 'agent_unilateral') == 0 and that gate
     # lived entirely in skill prose. CLAUDE.md's lesson from the same run: an
     # accurate field with no consumer is not a control.
+    # decided_by='open' arrived at 0.15.0 so a boundary RAISED and not yet
+    # decided could be represented at all. It must never be a way to PASS the
+    # gate by declining to decide, so it is counted with agent_unilateral into
+    # Unilateral_Boundary_Count__c — and warned SEPARATELY, because "never
+    # decided" and "decided by the agent" have different remedies and a reader
+    # must not be told a question was decided badly when it was not decided.
+    # Superseding a handoff must retire its NATIVE projections, not only mark
+    # the Kynesin records. Measured before the change: 61 eligibility rules on
+    # one study where 34 were current, and a reviewer could not separate them
+    # without parsing SourceSystemIdentifier. Guarded on SourceSystem='Kynesin'
+    # so a sponsor's own records are never touched.
+    # register_status.proposed_entries had NO consumer. The block is still not
+    # validated or persisted — adopting a register amendment is an owner's act,
+    # not ingestion's — but a deferral left no trace, and organ-function
+    # decisions deferred at one coverage census arrived as a live unanswered
+    # boundary question one derivation later.
+    ("apex-proposed-entries-counted",
+     r"h\.Proposed_Entry_Count__c = proposedEntries",
+     "register amendments proposed by a payload are counted, though never adopted"),
+    ("apex-supersede-retires-natives",
+     r"private static void retireSupersededProjections\(",
+     "a superseded handoff's native projections are retired, not left beside their replacement"),
+    ("apex-open-boundary-not-a-pass",
+     r"boundaryUnilateral \+ boundaryOpen",
+     "decided_by=open counts as unowned, never as a pass"),
     ("apex-boundary-gate-consumer",
      r"'agent_unilateral'\.equals\(\s*str\(\s*bd\.get\(\s*'decided_by'\s*\)\s*\)\s*\)",
      "agent_unilateral boundary decisions are counted and surfaced"),
@@ -322,6 +347,27 @@ APEX_CODE_ASSERTIONS = [
 # is (check code, class file name, regex, what it enforces) and the file is resolved
 # relative to the same classes/ directory the --apex file sits in.
 SIBLING_CODE_ASSERTIONS = [
+    # A caveat is a finding the decision SURVIVED — carried knowingly, not
+    # corrected. Without a durable home the disposition lives only in a session
+    # artifact, and the next derivation re-discovers the finding and may dispose
+    # it differently: four findings on ovarian-parp-hrd-mono@1.0 were in exactly
+    # that state on 2026-09-02. If the health action stops reporting them, the
+    # object still holds them and nothing reads them, which is the same failure
+    # with an extra table.
+    ("apex-caveat-disposition-surfaced",
+     "KynesinGetRegisterHealth.cls",
+     r"result\.put\(\s*'blocking_caveat_count'",
+     "disposed verification findings are surfaced, blocking ones counted"),
+    # Verified_Against__c names the SOURCE; Verified_By__c names the VERIFIER.
+    # All ten ovarian decisions carried the first and not the second — the
+    # identical string "step-3/V-09 verification pass 2026-08-13", a label for a
+    # step of the session that AUTHORED the register — and the action reported
+    # 10/10 verified, 0 errors while four discrepancies stood. A stamp applied by
+    # the authoring session is not verification and must not read as one.
+    ("apex-stamp-is-not-verification",
+     "KynesinGetRegisterHealth.cls",
+     r"result\.put\(\s*'stamped_without_verifier_count'",
+     "a verification stamp with no named verifier is reported, not counted as proof"),
     # A correction dated AFTER the criterion was received may have outdated the
     # text above it. CLAUDE.md recorded this as "a presentation gap, not an
     # action gap": both dates were already in the packet and nothing compared
