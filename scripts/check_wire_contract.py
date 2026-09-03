@@ -309,6 +309,22 @@ APEX_CODE_ASSERTIONS = [
     # Unilateral_Boundary_Count__c — and warned SEPARATELY, because "never
     # decided" and "decided by the agent" have different remedies and a reader
     # must not be told a question was decided badly when it was not decided.
+    # Superseding a handoff must retire its NATIVE projections, not only mark
+    # the Kynesin records. Measured before the change: 61 eligibility rules on
+    # one study where 34 were current, and a reviewer could not separate them
+    # without parsing SourceSystemIdentifier. Guarded on SourceSystem='Kynesin'
+    # so a sponsor's own records are never touched.
+    # register_status.proposed_entries had NO consumer. The block is still not
+    # validated or persisted — adopting a register amendment is an owner's act,
+    # not ingestion's — but a deferral left no trace, and organ-function
+    # decisions deferred at one coverage census arrived as a live unanswered
+    # boundary question one derivation later.
+    ("apex-proposed-entries-counted",
+     r"h\.Proposed_Entry_Count__c = proposedEntries",
+     "register amendments proposed by a payload are counted, though never adopted"),
+    ("apex-supersede-retires-natives",
+     r"private static void retireSupersededProjections\(",
+     "a superseded handoff's native projections are retired, not left beside their replacement"),
     ("apex-open-boundary-not-a-pass",
      r"boundaryUnilateral \+ boundaryOpen",
      "decided_by=open counts as unowned, never as a pass"),
